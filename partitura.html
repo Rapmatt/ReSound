@@ -1,0 +1,1160 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Orivox · Partitura</title>
+<meta name="description" content="Orivox Partitura: transforme seu áudio em partitura (via caderno Colab) e visualize com acompanhamento sincronizado, direto no navegador.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,650;1,9..144,500&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#10141F; --panel:#181E2E; --panel-2:#1F2637; --line:#2A3247;
+  --ink:#E9ECF5; --muted:#8A93AB; --gold:#2AD4C8; --gold-soft:#7FEDE3; --amber:#E0A75E;
+  --teal:#5FC4B8; --green:#7BC98A; --radius:16px; --radius-s:9px;
+  --font-display:'Fraunces',serif; --font-mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:Inter,Arial,sans-serif}
+a{color:var(--gold)}
+button{font-family:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:4px}
+body{background:var(--bg);color:var(--ink);padding:22px 18px 60px;max-width:1040px;margin:0 auto;
+  background-image:radial-gradient(ellipse 900px 520px at 50% -140px,#1C2438 0%,transparent 62%)}
+/* ---------- cabeçalho ---------- */
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+.brand{display:flex;align-items:center;gap:11px;text-decoration:none}
+.brand .wordmark{font-family:var(--font-display);font-weight:650;font-size:30px;letter-spacing:.5px;color:var(--ink)}
+.brand .wordmark .rs{color:var(--gold)}
+.back{font-size:13px;text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:8px 15px;color:var(--muted);transition:all .15s ease;white-space:nowrap}
+.back:hover{border-color:var(--gold);color:var(--gold-soft)}
+.sub{color:var(--muted);font-size:12.5px;margin:2px 0 18px}
+/* ---------- passos ---------- */
+.steps{display:flex;align-items:center;gap:0;margin:0 0 20px}
+.step{display:flex;align-items:center;gap:10px;flex:1}
+.dot{width:30px;height:30px;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted);font-family:var(--font-mono);background:var(--panel);flex-shrink:0}
+.step.on .dot{border-color:var(--gold);color:var(--gold-soft);box-shadow:0 0 14px rgba(42,212,200,.3)}
+.step.done .dot{border-color:var(--green);color:var(--green)}
+.step .txt{font-size:12.5px;color:var(--muted)}
+.step.on .txt{color:var(--ink);font-weight:600}
+.step .bar{flex:1;height:2px;background:var(--line);margin:0 8px}
+.step.done .bar{background:var(--green)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:26px;margin-bottom:14px}
+.state{display:none}.state.on{display:block}
+.hero{text-align:center;padding:6px 0}
+.hero h2{font-family:var(--font-display);font-weight:650;font-size:24px;margin-bottom:8px}
+.hero p{color:var(--muted);font-size:13px;margin-bottom:18px}
+.dropbig{border:1.5px dashed var(--line);border-radius:14px;padding:38px 20px;cursor:pointer;transition:all .15s}
+.dropbig:hover{border-color:var(--gold);background:rgba(42,212,200,.04)}
+.dropbig .ic{font-size:38px;color:var(--gold);margin-bottom:10px}
+.dropbig .big{font-size:15px;color:var(--ink);font-weight:600}
+.dropbig .small{font-size:12px;color:var(--muted);margin-top:4px}
+.row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:18px}
+.btn{display:inline-flex;align-items:center;gap:8px;border-radius:10px;padding:11px 18px;font-size:13.5px;cursor:pointer;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);text-decoration:none;transition:all .15s ease}
+.btn:hover{border-color:var(--gold);color:var(--gold-soft)}
+.btn.gold{background:var(--gold);color:#07201d;border-color:var(--gold);font-weight:650}
+.btn.gold:hover{background:var(--gold-soft);color:#07201d}
+.btn.sm{padding:8px 13px;font-size:12.5px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.shortcut{margin-top:16px;font-size:12.5px;color:var(--muted)}
+.shortcut a{color:var(--gold-soft);cursor:pointer;text-decoration:underline}
+.guide{list-style:none;margin:14px 0 0}
+.guide li{display:flex;gap:12px;padding:11px 0;border-top:1px solid var(--line);font-size:13px;color:var(--ink)}
+.guide li .n{width:24px;height:24px;border-radius:50%;background:var(--panel-2);border:1px solid var(--gold);color:var(--gold-soft);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;font-family:var(--font-mono)}
+.guide li b{color:var(--gold-soft)}
+.note{font-size:12px;color:var(--muted);background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:14px;line-height:1.55}
+.note.amber{border-color:#4a3a22;background:rgba(224,167,94,.08);color:var(--amber)}
+.backlink{font-size:12px;color:var(--muted);cursor:pointer;text-decoration:underline;margin-top:12px;display:inline-block}
+.foot{margin-top:24px;font-size:11.5px;color:#5C6884;line-height:1.55;text-align:center;font-family:var(--font-mono)}
+.foot-credit{display:inline-block;margin-top:3px;color:var(--gold-soft)}
+/* ---------- importador ---------- */
+.dropzone{border:1.5px dashed var(--line);border-radius:12px;padding:22px 16px;text-align:center;color:var(--muted);font-size:13px;cursor:pointer;transition:all .15s}
+.dropzone:hover{border-color:var(--gold);color:var(--gold-soft)}
+.dropzone b{color:var(--gold-soft)}
+/* ---------- visualizador (inline) ---------- */
+.viewer{display:none;margin-top:16px}
+.viewer.on{display:block}
+.toolbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px}
+.tool{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:8px 12px;font-size:12.5px;cursor:pointer;transition:all .15s}
+.tool:hover{border-color:var(--gold);color:var(--gold-soft)}
+.tool.primary{background:var(--gold);color:#07201d;border-color:var(--gold);font-weight:650}
+.tool.primary:hover{background:var(--gold-soft)}
+.spacer{flex:1}
+.lbl{font-size:11px;color:var(--muted);font-family:var(--font-mono)}
+.range{accent-color:var(--gold)}
+.score-wrap{position:relative;background:#F7F7F4;border:1px solid var(--line);border-radius:12px;overflow:auto;max-height:560px;min-height:300px;padding:10px}
+.score-wrap.empty{display:flex;align-items:center;justify-content:center;background:var(--panel);color:var(--muted);text-align:center;font-size:13px;min-height:220px}
+#vwSVG svg{max-width:100%;height:auto;display:block;margin:0 auto}
+#vwSVG g.vw-hl, #vwSVG g.vw-hl *{fill:var(--amber)!important;stroke:var(--amber)!important}
+.cursor{position:absolute;top:14px;bottom:14px;width:2px;background:var(--gold);box-shadow:0 0 10px var(--gold);display:none;z-index:4;pointer-events:none}
+#vwPDF{display:none;width:100%;height:560px;border:1px solid var(--line);border-radius:12px;background:#fff}
+#playerWrap{display:none!important}  /* motor de som próprio: player externo oculto */
+/* Mixer de instrumentos (mudo + volume por instrumento) */
+.mixer{display:none;margin-bottom:10px;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.mixer.on{display:block}
+.mixer h4{margin:0 0 8px;font-size:12.5px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:7px}
+.mixrow{display:flex;align-items:center;gap:10px;padding:5px 0;border-top:1px solid var(--line)}
+.mixrow:first-of-type{border-top:0}
+.mixrow .dot{width:13px;height:13px;border-radius:3px;flex:0 0 auto;cursor:pointer;border:1px solid transparent;box-sizing:border-box;transition:box-shadow .12s,transform .12s}
+.mixrow .dot:hover{transform:scale(1.18)}
+.mixrow .dot.on{box-shadow:0 0 0 2px var(--bg),0 0 0 4px currentColor}
+.mixdica{font-size:11px;color:var(--muted);line-height:1.5;margin:8px 2px 2px;padding-top:8px;border-top:1px solid var(--line)}
+.mixdica b{color:var(--gold-soft);font-weight:650}
+.mixdica .ic{display:inline-block;min-width:14px;text-align:center;color:var(--gold-soft);font-weight:650}
+.mixdica .sq{display:inline-block;width:10px;height:10px;border-radius:2px;background:linear-gradient(135deg,#2AD4C8,#C78FEE);vertical-align:middle;margin:0 1px}
+.mixdica .sep{opacity:.45;margin:0 3px}
+.mixrow .nm{font-size:12.5px;color:var(--ink);flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mixrow .mute{background:var(--panel);border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:4px 9px;font-size:11.5px;cursor:pointer;flex:0 0 auto}
+.mixrow .mute.on{background:var(--amber);border-color:var(--amber);color:#2a1800;font-weight:650}
+.mixrow input[type=range]{width:120px;flex:0 0 auto;accent-color:var(--gold)}
+.mixrow .pct{font-size:11px;color:var(--muted);width:34px;text-align:right;flex:0 0 auto}
+.mixrow .inst{flex:0 0 auto;max-width:170px;background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:4px 7px;font-size:11.5px;cursor:pointer}
+.mixrow .inst:hover{border-color:var(--gold)}
+.mixrow .solo{background:var(--panel);border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:4px 9px;font-size:11.5px;cursor:pointer;flex:0 0 auto}
+.mixrow .solo.on{background:var(--gold);border-color:var(--gold);color:#07201d;font-weight:650}
+.mixrow .indiv{background:var(--panel);border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:4px 9px;font-size:13px;line-height:1;cursor:pointer;flex:0 0 auto}
+.mixrow .indiv:hover{border-color:var(--gold);color:var(--gold-soft)}
+.mixrow .indiv.on{background:var(--amber);border-color:var(--amber);color:#2a1800;font-weight:650}
+.mixmaster{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px;padding:8px 10px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.mixmaster .mlbl{font-size:11.5px;color:var(--ink)}
+.mixmaster input[type=range]{width:120px;accent-color:var(--gold)}
+.mixmaster .pct{font-size:11px;color:var(--muted);width:34px;text-align:right}
+.mixmaster .msep{width:1px;height:18px;background:var(--line);margin:0 6px}
+.titulo-part{display:block;width:100%;margin:2px 0 8px;padding:7px 12px;border:1px solid transparent;border-radius:9px;background:transparent;color:var(--ink);font-family:var(--font-display);font-weight:650;font-size:20px;text-align:center;transition:all .15s}
+.titulo-part::placeholder{color:var(--muted);font-weight:500;font-size:15px}
+.titulo-part:hover{border-color:var(--line)}
+.titulo-part:focus{outline:none;border-color:var(--gold);background:var(--panel)}
+.langbar{position:fixed;top:10px;right:12px;display:flex;gap:5px;z-index:90;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:4px 6px;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.langbar .flag{line-height:0;background:none;border:1px solid transparent;border-radius:6px;padding:2px;cursor:pointer;opacity:.55;transition:all .12s}
+.langbar .flag svg{display:block;width:26px;height:18px;border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+.langbar .flag:hover{opacity:1}
+.langbar .flag.on{opacity:1;border-color:var(--gold);background:rgba(42,212,200,.14)}
+/* Barra de transporte (metrônomo, BPM, tom, loop) */
+.transport{display:none;align-items:center;gap:7px;flex-wrap:wrap;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:8px 11px;margin-bottom:10px}
+.transport.on{display:flex}
+.transport .lbl{font-size:11.5px;color:var(--muted)}
+.transport .sep{width:1px;height:20px;background:var(--line);margin:0 3px}
+.tbtn{background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:7px;width:26px;height:26px;font-size:14px;line-height:1;cursor:pointer;padding:0}
+.tbtn:hover{border-color:var(--gold);color:var(--gold-soft)}
+.tnum{width:52px;background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:4px 6px;font-size:12.5px;text-align:center}
+.tval{min-width:26px;text-align:center;font-size:12.5px;color:var(--ink);font-family:var(--font-mono)}
+.tsel{background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:5px 8px;font-size:11.5px}
+.tool.tbg{padding:6px 9px;font-size:11.5px}
+.tool.tbg.on{background:var(--gold);color:#07201d;border-color:var(--gold);font-weight:650}
+.tool#metro.on{background:var(--gold);color:#07201d;border-color:var(--gold);font-weight:650}
+.tool.primary#play.on{box-shadow:0 0 0 2px var(--gold-soft) inset;filter:brightness(1.06)}
+/* Piano-roll (visual do MIDI, com teclado fixo) */
+#vwRoll{display:none}
+.rollgrid{display:flex;position:relative;align-items:flex-start}
+#rollKeys{flex:0 0 auto;z-index:3;box-shadow:2px 0 6px rgba(0,0,0,.18)}
+#rollScroll{flex:1 1 auto;overflow-x:auto;position:relative}
+#rollNotes{display:block}
+#rollCursor{position:absolute;top:0;bottom:0;width:2px;background:var(--gold);box-shadow:0 0 10px var(--gold);display:none;z-index:4;pointer-events:none}
+.loopmark{position:absolute;top:0;bottom:0;width:2px;background:var(--amber);opacity:.85;z-index:2;pointer-events:none}
+/* Metrônomo visual (motor idêntico ao do index.html) */
+@keyframes mvGlow{0%,100%{text-shadow:0 0 8px rgba(127,237,227,.75)}50%{text-shadow:0 0 16px rgba(127,237,227,1)}}
+.mv-open{background:rgba(42,212,200,.12);border:1px solid var(--gold);color:#8AFFF2;border-radius:8px;font-size:11.5px;font-weight:600;padding:5px 10px;cursor:pointer;font-family:inherit}
+.mv-open:hover{border-color:var(--gold-soft)}
+.mv-pop{position:fixed;right:18px;bottom:18px;width:264px;background:#12181F;border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.55);overflow:hidden;z-index:80;display:none}
+.mv-pop.on{display:block}
+.mv-ph{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;border-bottom:1px solid var(--line);cursor:move;user-select:none;touch-action:none}
+.mv-ph .t{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.mv-ph .b{font-family:monospace;font-size:12px;color:var(--gold-soft)}
+.mv-ph .x{background:none;border:none;color:var(--muted);font-size:17px;cursor:pointer;line-height:1;padding:0}
+.mv-ph .x:hover{color:var(--gold)}
+.mv-body{padding:16px 14px 14px}
+.mv-nodes{display:flex;align-items:center;justify-content:space-between;position:relative;margin-bottom:8px;min-height:48px}
+.mv-guia{position:absolute;left:24px;right:8px;top:50%;height:3px;background:var(--panel-2);border-radius:2px;overflow:hidden}
+.mv-guiafill{height:100%;width:0%;background:var(--gold);box-shadow:0 0 10px rgba(42,212,200,.5)}
+.mv-node{position:relative;z-index:1;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid var(--gold);color:var(--muted);font-weight:700;background:#12181F;transition:transform .05s,box-shadow .05s,color .05s,background .05s}
+.mv-node.n1{width:48px;height:48px;border-width:3px;font-size:14px}
+.mv-node.n{width:30px;height:30px;font-size:12px}
+.mv-node.on{color:#fff;box-shadow:0 0 16px rgba(42,212,200,.7);background:rgba(42,212,200,.12);transform:scale(1.1)}
+.mv-node.on.acc{border-color:var(--amber);color:var(--amber);box-shadow:0 0 20px 2px rgba(224,167,94,.7);background:rgba(224,167,94,.12)}
+.mv-note{font-size:10.5px;color:var(--muted);margin-top:4px;line-height:1.45}
+@media (max-width:560px){ .mixrow input[type=range]{width:90px} }
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--panel-2);border:1px solid var(--gold);color:var(--gold-soft);padding:10px 16px;border-radius:10px;font-size:12.5px;opacity:0;transition:opacity .2s;z-index:80;pointer-events:none}
+.toast.on{opacity:1}
+@media print{ body>*{display:none!important} #printArea,#printArea *{display:block!important} #printArea{position:absolute;inset:0;background:#fff;padding:0} }
+@media (max-width:560px){ .brand .wordmark{font-size:25px} .score-wrap,#vwPDF{max-height:70vh} }
+</style></head><body>
+
+<header>
+  <a href="index.html" class="brand">
+    <svg viewBox="0 0 100 100" aria-hidden="true" style="width:38px;height:38px;flex:0 0 38px">
+      <circle cx="50" cy="50" r="46" fill="none" stroke="#D88A3A" stroke-width="1.5" opacity="0.55"/>
+      <g stroke="#E2A356" stroke-width="4.2" stroke-linecap="round">
+        <line x1="30" y1="58" x2="30" y2="42"/><line x1="38" y1="64" x2="38" y2="36"/>
+        <line x1="46" y1="70" x2="46" y2="30"/><line x1="54" y1="66" x2="54" y2="34"/>
+        <line x1="62" y1="72" x2="62" y2="28"/><line x1="70" y1="60" x2="70" y2="40"/>
+      </g>
+    </svg>
+    <span class="wordmark">Oriv<span class="rs">ox</span> · Partitura</span>
+  </a>
+  <a href="index.html" class="back">← Voltar ao estúdio</a>
+</header>
+<div class="sub">Áudio → caderno (Colab) → partitura, tudo numa página. Importe o arquivo gerado e acompanhe a partitura seguindo o som, sem sair daqui.</div>
+
+<div class="steps" id="steps">
+  <div class="step on" data-s="1"><div class="dot">1</div><div class="txt">Enviar áudio</div><div class="bar"></div></div>
+  <div class="step" data-s="2"><div class="dot">2</div><div class="txt">Importar e ver a partitura</div></div>
+</div>
+
+<!-- ===== PASSO 1 ===== -->
+<div class="card state on" id="s1">
+  <div class="hero">
+    <h2>Transforme seu áudio em partitura</h2>
+    <p style="margin-bottom:18px">Grátis e no seu navegador. <b style="color:var(--ink)">Selecione seu áudio</b> para começar: o caderno abre no Colab (nova aba) e gera a partitura; esta página já avança para a importação (Passo 2).</p>
+    <div class="row">
+      <a class="btn gold" id="abrirColab1" href="https://colab.research.google.com/github/Rapmatt/ReSound/blob/main/Orivox_ReSound_Mixers_Studio_Edition.ipynb" target="_blank" rel="noopener" style="font-size:15px;padding:13px 24px">🎵 Selecionar arquivos de áudio</a>
+      <a class="btn" id="baixarCaderno">⬇ Baixar o caderno (.ipynb)</a>
+    </div>
+    <div class="shortcut">Já tem o XML/MIDI/PDF gerado? <a id="atalho">Pular para a importação →</a></div>
+  </div>
+</div>
+
+<!-- ===== PASSO 2 ===== -->
+<div class="card state" id="s2">
+  <h2 style="font-family:var(--font-display);font-weight:650;font-size:22px;margin-bottom:6px">Importe o arquivo gerado pelo caderno</h2>
+  <p style="color:var(--muted);font-size:13px">No Colab, rode a <b style="color:var(--amber)">Célula 8 — "Partitura COMPLETA"</b> (marque <b>ENVIAR_AUDIO_AGORA</b> e envie seu áudio). Baixe o <b>MusicXML</b> (ou MIDI/PDF) que ela gera e importe aqui. <a href="https://colab.research.google.com/github/Rapmatt/ReSound/blob/main/Orivox_ReSound_Mixers_Studio_Edition.ipynb" target="_blank" rel="noopener" style="color:var(--gold-soft)">↗ abrir o caderno no Colab</a></p>
+
+  <div class="dropzone" id="imp" style="margin-top:14px">⬆ <b>Importar MusicXML, MIDI ou PDF</b> — clique ou arraste o arquivo aqui</div>
+
+  <!-- VISUALIZADOR INLINE -->
+  <div class="viewer" id="viewer">
+    <div class="toolbar">
+      <button class="tool primary" id="play" title="Tocar / retomar">▶ Tocar</button>
+      <button class="tool" id="pause" title="Pausar (mantém a posição)">❚❚</button>
+      <button class="tool" id="stop" title="Parar (volta ao início)">■</button>
+      <div class="spacer"></div>
+      <span class="lbl">Exportar:</span>
+      <button class="tool" id="expXML">XML</button>
+      <button class="tool" id="expMIDI">MIDI</button>
+      <button class="tool" id="expPDF">PDF</button>
+      <button class="tool" id="imprimir" title="Imprimir a partitura direto do navegador">🖨 Imprimir</button>
+      <button class="tool" id="troca">Trocar arquivo</button>
+    </div>
+    <div class="transport" id="transport">
+      <button class="tool" id="metro" title="Toca um click/metrônomo junto com a música">🔔 Metrônomo</button>
+      <button class="mv-open" id="btnMetroVisual" title="Metrônomo visual: pulso que pisca no tempo (acessibilidade auditiva). Painel flutuante.">🦻 Visual</button>
+      <select class="tsel" id="preCount" title="Compassos de contagem antes de começar a tocar"><option value="0">sem contagem</option><option value="1">contar 1 compasso</option><option value="2">contar 2 compassos</option></select>
+      <span class="sep"></span>
+      <span class="lbl">BPM</span>
+      <button class="tbtn" id="bpmDown" aria-label="Diminuir BPM">−</button><input class="tnum" id="bpmVal" type="number" min="20" max="320" step="1" value="120"><button class="tbtn" id="bpmUp" aria-label="Aumentar BPM">+</button>
+      <span class="sep"></span>
+      <span class="lbl">Tom</span>
+      <button class="tbtn" id="trDown" aria-label="Transpor para baixo">−</button><span class="tval" id="trVal">0</span><button class="tbtn" id="trUp" aria-label="Transpor para cima">+</button>
+      <span class="sep"></span>
+      <span class="lbl">Loop</span>
+      <button class="tool tbg" id="loopA" title="Marcar início do trecho">A</button><button class="tool tbg" id="loopB" title="Marcar fim do trecho">B</button><button class="tool tbg" id="loopOn" title="Repetir o trecho A–B">⟲ Loop</button><button class="tool tbg" id="loopClr" title="Limpar A/B">✕</button>
+    </div>
+    <div class="mixer" id="mixer"><h4>🎚 Instrumentos — mude, dê solo ou ajuste o volume de cada um</h4>
+      <div class="mixmaster">
+        <span class="mlbl">Partitura (geral)</span><input type="range" id="volGeral" min="0" max="120" value="95" aria-label="Volume geral da partitura"><span class="pct" id="volGeralPct">95%</span>
+        <span class="msep"></span>
+        <span class="mlbl">🔔 Metrônomo</span><input type="range" id="volMetro" min="0" max="120" value="90" aria-label="Volume do metrônomo"><span class="pct" id="volMetroPct">90%</span>
+      </div>
+      <div id="mixList"></div>
+      <div class="mixdica" id="mixDica"></div></div>
+    <input id="tituloPartitura" class="titulo-part" type="text" placeholder="Título da partitura (clique para editar)" title="Título da partitura — clique para editar; aparece na impressão e na exportação">
+    <div class="score-wrap empty" id="vwWrap"><div class="cursor" id="cursor"></div><div id="vwSVG">Importe um arquivo para ver a partitura.</div><div id="vwRoll"></div></div>
+    <iframe id="vwPDF" title="PDF da partitura"></iframe>
+    <div id="playerWrap">
+      <div class="lbl" style="margin-bottom:6px">Som (MIDI) — toque para ouvir e acompanhar a partitura:</div>
+      <midi-player id="mp" sound-font style="width:100%"></midi-player>
+    </div>
+  </div>
+
+  <div class="note amber">O passo no caderno é manual: você envia o áudio no Colab (aba nova) e importa aqui o arquivo gerado. Assim tudo continua grátis e no seu navegador.</div>
+  <span class="backlink" id="voltar1">← voltar ao envio de áudio</span>
+</div>
+
+<input type="file" id="impFile" accept=".xml,.musicxml,.mxl,.mid,.midi,.pdf" style="display:none">
+<!-- Metrônomo visual (pop flutuante) -->
+<div class="mv-pop" id="mvPop" role="dialog" aria-label="Metrônomo visual">
+  <div class="mv-ph" id="mvHead"><span class="t">Metrônomo visual</span><span class="b" id="mvBpm">— BPM</span><button class="x" id="mvClose" title="Fechar" aria-label="Fechar">&times;</button></div>
+  <div class="mv-body">
+    <div class="mv-nodes" id="mvNodes"><div class="mv-guia"><div class="mv-guiafill" id="mvGuia"></div></div></div>
+    <div class="mv-note">Pisca no tempo. Acompanha o play e o BPM. Fica flutuando: a página continua inteira.</div>
+  </div>
+</div>
+<div id="printArea" style="display:none"></div>
+<div class="foot">Orivox · Partitura · 100% no seu navegador<br><span class="foot-credit">Desenvolvido por Raphael Silveira</span></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/combine/npm/tone@14.7.77,npm/@magenta/music@1.23.0/es6/core.js,npm/focus-visible@5.2.0,npm/html-midi-player@1.5.0"></script>
+<script src="https://www.verovio.org/javascript/latest/verovio-toolkit-wasm.js" defer></script>
+<script src="https://surikov.github.io/webaudiofont/npm/dist/WebAudioFontPlayer.js"></script>
+<script type="module">
+  /* MuseScore General via SpessaSynth (mesmo soundfont do MuScriptor), agendado com tempo absoluto.
+     Experimental: se não carregar (CDN/soundfont 38MB/worklet), o motor cai no WebAudioFont. */
+  window.__spessaInit = async function(ctx, dest){
+    const mod = await import('https://esm.sh/spessasynth_lib@4.3.8');
+    const WorkletSynthesizer = mod.WorkletSynthesizer || (mod.default && mod.default.WorkletSynthesizer);
+    if(!WorkletSynthesizer) throw new Error('WorkletSynthesizer ausente');
+    await ctx.audioWorklet.addModule('https://cdn.jsdelivr.net/npm/spessasynth_lib@4.3.8/dist/spessasynth_processor.min.js');
+    const synth = new WorkletSynthesizer(ctx);
+    synth.connect(dest || ctx.destination);
+    await synth.isReady;
+    const res = await fetch('https://huggingface.co/MuScriptor/assets/resolve/main/MuseScore_General.sf3');
+    if(!res.ok) throw new Error('soundfont HTTP '+res.status);
+    await synth.soundBankManager.addSoundBank(await res.arrayBuffer(), 'MuseScore_General');
+    return synth;
+  };
+</script>
+<script>
+/* ===== Motor MIDI (vanilla, sem CDN): faixas/instrumentos; mudo+volume (velocity),
+   transposição (altura) e BPM (tempo) por patch de bytes; notas p/ piano-roll. ===== */
+(function(root){ 'use strict';
+  function readVarLen(a,p){ let v=0,b; do{ b=a[p++]; v=(v<<7)|(b&0x7f); }while(b&0x80); return [v>>>0,p]; }
+  const GM=['Piano','Piano','Piano elétrico','Piano','Piano elétrico','Piano elétrico','Cravo','Clavinete','Celesta','Glockenspiel','Caixa de música','Vibrafone','Marimba','Xilofone','Sinos','Dulcimer','Órgão','Órgão percussivo','Órgão rock','Órgão de igreja','Harmônio','Acordeão','Gaita','Acordeão','Violão (nylon)','Violão (aço)','Guitarra jazz','Guitarra limpa','Guitarra abafada','Guitarra overdrive','Guitarra distorcida','Harmônicos','Baixo acústico','Baixo elétrico','Baixo elétrico','Baixo fretless','Baixo slap','Baixo slap','Baixo sintetizado','Baixo sintetizado','Violino','Viola','Violoncelo','Contrabaixo','Cordas tremolo','Cordas pizzicato','Harpa','Tímpanos','Cordas','Cordas','Sintetizador de cordas','Sintetizador de cordas','Coro aah','Voz ooh','Voz sintetizada','Hit de orquestra','Trompete','Trombone','Tuba','Trompete abafado','Trompa','Metais','Metais sintetizados','Metais sintetizados','Sax soprano','Sax alto','Sax tenor','Sax barítono','Oboé','Corne inglês','Fagote','Clarinete','Flautim','Flauta','Flauta doce','Flauta de pã','Garrafa','Shakuhachi','Assobio','Ocarina','Lead quadrado','Lead serra','Lead calliope','Lead chiff','Lead charang','Lead voz','Lead quintas','Lead baixo','Pad new age','Pad quente','Pad polysynth','Pad coro','Pad arco','Pad metálico','Pad halo','Pad sweep','FX chuva','FX trilha','FX cristal','FX atmosfera','FX brilho','FX duendes','FX ecos','FX nave','Sitar','Banjo','Shamisen','Koto','Kalimba','Gaita de foles','Rabeca','Shanai','Sino tubular','Agogô','Steel drum','Woodblock','Taiko','Tom melódico','Tambor sintetizado','Prato reverso','Traste de guitarra','Respiração','Praia','Pássaro','Telefone','Helicóptero','Aplausos','Tiro'];
+  function parseMidi(u8){
+    if(u8[0]!==0x4d||u8[1]!==0x54||u8[2]!==0x68||u8[3]!==0x64) throw new Error('MThd ausente');
+    const format=(u8[8]<<8)|u8[9], ntrk=(u8[10]<<8)|u8[11];
+    let division=(u8[12]<<8)|u8[13]; if(division&0x8000) division=480;
+    let p=14, tempoUs=500000; const tracks=[]; const tempoOffsets=[]; const tempoMap=[];
+    for(let ti=0; ti<ntrk && p+8<=u8.length; ti++){
+      const len=(u8[p+4]<<24)|(u8[p+5]<<16)|(u8[p+6]<<8)|u8[p+7]; p+=8; const end=p+len;
+      let tick=0,status=0,name='',program=-1,channel=-1,drum=false;
+      const velOffsets=[],pitchOffsets=[],open={},notes=[];
+      while(p<end){ let dt; [dt,p]=readVarLen(u8,p); tick+=dt; let b=u8[p];
+        if(b&0x80){ status=b; p++; }
+        const hi=status&0xf0, ch=status&0x0f;
+        if(status===0xff){ const type=u8[p++]; let l; [l,p]=readVarLen(u8,p);
+          if(type===0x03 && !name){ let s=''; for(let i=0;i<l;i++) s+=String.fromCharCode(u8[p+i]); name=s; }
+          else if(type===0x51 && l===3){ tempoUs=(u8[p]<<16)|(u8[p+1]<<8)|u8[p+2]; tempoOffsets.push(p); tempoMap.push({tick:tick, us:tempoUs}); } p+=l;
+        } else if(status===0xf0||status===0xf7){ let l; [l,p]=readVarLen(u8,p); p+=l; }
+        else if(hi===0x90){ const noteOff=p, note=u8[p], velOff=p+1, vel=u8[p+1]; p+=2;
+          if(channel<0) channel=ch; if(ch===9) drum=true;
+          if(vel>0){ velOffsets.push({off:velOff,vel:vel}); pitchOffsets.push({off:noteOff,drum:ch===9}); open[(ch<<8)|note]=notes.length; notes.push({pitch:note,ch:ch,on:tick,off:tick}); }
+          else { pitchOffsets.push({off:noteOff,drum:ch===9}); const k=(ch<<8)|note; if(open[k]!=null){ notes[open[k]].off=tick; delete open[k]; } }
+        } else if(hi===0x80){ const noteOff=p, note=u8[p]; p+=2; pitchOffsets.push({off:noteOff,drum:ch===9}); const k=(ch<<8)|note; if(open[k]!=null){ notes[open[k]].off=tick; delete open[k]; } }
+        else if(hi===0xc0){ if(program<0) program=u8[p]; if(channel<0) channel=ch; if(ch===9) drum=true; p+=1; }
+        else if(hi===0xd0){ p+=1; }
+        else if(hi===0xa0||hi===0xb0||hi===0xe0){ p+=2; } else { p++; } }
+      p=end; let label=name.trim();
+      if(!label){ label = drum ? 'Bateria/Percussão' : (program>=0 ? GM[program] : (notes.length?'Instrumento '+(tracks.filter(t=>t.notes.length).length+1):'')); }
+      if(drum && !/bateria|percuss/i.test(label)) label='Bateria/Percussão';
+      tracks.push({idx:ti,name:label,program:program,channel:channel,isDrum:drum,velOffsets:velOffsets,pitchOffsets:pitchOffsets,notes:notes,tempoUs:tempoUs});
+    }
+    return {format:format,division:division,tempoUs:tempoUs,tracks:tracks,tempoOffsets:tempoOffsets,tempoMap:tempoMap,bytes:u8};
+  }
+  function secAtTick(parsed, tick){ const div=parsed.division||480;
+    let map=(parsed.tempoMap&&parsed.tempoMap.length)?parsed.tempoMap.slice():[{tick:0,us:parsed.tempoUs||500000}];
+    map.sort((a,b)=>a.tick-b.tick); if(map[0].tick>0) map.unshift({tick:0,us:map[0].us});
+    let sec=0; for(let i=0;i<map.length;i++){ const t0=map[i].tick; if(t0>=tick) break; const t1=(i+1<map.length)?Math.min(map[i+1].tick,tick):tick; sec+=(t1-t0)/div*(map[i].us/1e6); } return sec; }
+  function ultimoTick(parsed){ let last=0; parsed.tracks.forEach(t=>t.notes.forEach(n=>{ if(n.off>last) last=n.off; })); return last; }
+  function beatsGrid(parsed){ const div=parsed.division||480; const last=ultimoTick(parsed); const out=[];
+    for(let k=0; k*div<=last+div; k++){ out.push(secAtTick(parsed,k*div)); if(k>200000) break; } return out; }
+  function build(parsed, opts){ opts=opts||{}; const out=parsed.bytes.slice();
+    if(opts.mix){ parsed.tracks.forEach((t,i)=>{ const m=opts.mix[i]||{}; const vol=m.mute?0:(m.vol==null?1:m.vol);
+      t.velOffsets.forEach(v=>{ let nv=Math.round(v.vel*vol); if(vol>0&&v.vel>0&&nv<1) nv=1; if(nv>127) nv=127; if(nv<0) nv=0; out[v.off]=nv; }); }); }
+    if(opts.semis){ const s=opts.semis|0; parsed.tracks.forEach(t=>t.pitchOffsets.forEach(pp=>{ if(pp.drum) return; let np=out[pp.off]+s; out[pp.off]=Math.max(0,Math.min(127,np)); })); }
+    if(opts.bpmFactor && Math.abs(opts.bpmFactor-1)>1e-6){ parsed.tempoOffsets.forEach(off=>{ const orig=(parsed.bytes[off]<<16)|(parsed.bytes[off+1]<<8)|parsed.bytes[off+2]; let nt=Math.round(orig/opts.bpmFactor); nt=Math.max(1,Math.min(0xFFFFFF,nt)); out[off]=(nt>>16)&0xFF; out[off+1]=(nt>>8)&0xFF; out[off+2]=nt&0xFF; }); }
+    return out; }
+  function isPassthrough(parsed,opts){ opts=opts||{}; if(opts.semis) return false; if(opts.bpmFactor && Math.abs(opts.bpmFactor-1)>1e-6) return false;
+    const mix=opts.mix||{}; return parsed.tracks.every((t,i)=>{ const m=mix[i]||{}; return !m.mute && (m.vol==null||Math.abs(m.vol-1)<1e-6); }); }
+  function bpmFromParsed(parsed){ const div=parsed.division||480; const last=ultimoTick(parsed);
+    if(last>0){ const sec=secAtTick(parsed,last); if(sec>0) return Math.round((last/div)/sec*60); }
+    return Math.round(60000000/(parsed.tempoUs||500000)); }
+  function tickToSec(parsed,tick){ return secAtTick(parsed,tick); }
+  root.OrivoxMidi={parseMidi,build,isPassthrough,tickToSec,secAtTick,beatsGrid,bpmFromParsed,GM};
+})(window);
+</script>
+<script>
+const COLAB_URL='https://colab.research.google.com/github/Rapmatt/ReSound/blob/main/Orivox_ReSound_Mixers_Studio_Edition.ipynb';
+const IPYNB_URL='https://raw.githubusercontent.com/Rapmatt/ReSound/main/Orivox_ReSound_Mixers_Studio_Edition.ipynb';
+const $=id=>document.getElementById(id);
+function toast(t){ const el=$('toast'); el.textContent=(typeof lbl==='function'?lbl(t):t); el.classList.add('on'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('on'),1800); }
+
+/* ---------- FLUXO (2 passos) ---------- */
+function go(n){
+  document.querySelectorAll('.state').forEach(s=>s.classList.remove('on'));
+  $('s'+n).classList.add('on');
+  document.querySelectorAll('.step').forEach(st=>{ const s=+st.dataset.s; st.classList.toggle('on', s===n); st.classList.toggle('done', s<n); });
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+// Passo 1: enviar áudio -> abre o Colab em aba nova E avança para o Passo 2 (aguardando import)
+// O botao/link "Abrir no Colab" e uma ancora real (abre o Colab sem popup bloqueado) e avanca ao Passo 2.
+function irPasso2(){ go(2); toast('Gere o arquivo no caderno (aba nova) e importe aqui.'); }
+$('abrirColab1').addEventListener('click',()=>{ setTimeout(irPasso2,60); });
+$('atalho').addEventListener('click',()=>go(2));
+$('voltar1').addEventListener('click',()=>go(1));
+async function baixarCaderno(){
+  try{
+    const r=await fetch(IPYNB_URL); if(!r.ok) throw 0;
+    const b=await r.blob(); const u=URL.createObjectURL(b); const a=document.createElement('a');
+    a.href=u; a.download='Orivox_ReSound_Mixers_Studio_Edition.ipynb'; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(u),3000); toast('Baixando o caderno .ipynb…');
+  }catch(e){ toast('Download direto falhou; abrindo o GitHub…'); window.open('https://github.com/Rapmatt/ReSound/blob/main/Orivox_ReSound_Mixers_Studio_Edition.ipynb','_blank'); }
+}
+$('baixarCaderno').addEventListener('click',baixarCaderno);
+
+/* ---------- IMPORTADOR ---------- */
+$('imp').addEventListener('click',()=>$('impFile').click());
+$('troca').addEventListener('click',()=>$('impFile').click());
+['dragover','drop'].forEach(ev=>$('imp').addEventListener(ev,e=>e.preventDefault()));
+$('imp').addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; if(f) carregarArquivo(f); });
+$('impFile').addEventListener('change',e=>{ const f=e.target.files[0]; if(f) carregarArquivo(f); });
+
+let lastXML=null, lastMIDIexport=null, lastPDFBlob=null, lastNome='partitura';
+let baseMidiU8=null, parsedMidi=null, mixState={}, modoRoll=false, rollDur=0;
+let transporSemis=0, bpmBase=120, bpmFactor=1;     // transposição e BPM
+let metroOn=false, loopA=null, loopB=null, loopOn=false;  // metrônomo e loop (A/B em segundos ORIGINAIS)
+let rollMinP=48, rollMaxP=72, lastBeat=-1, beatTimesEff=[], duracaoEff=0;
+const BEATS_BAR=4;
+function recomputarBeats(){ if(!parsedMidi){ beatTimesEff=[]; duracaoEff=0; return; }
+  try{ beatTimesEff=OrivoxMidi.beatsGrid(parsedMidi).map(t=>t/bpmFactor);   // grade pelo andamento real do arquivo
+    let last=0; parsedMidi.tracks.forEach(t=>t.notes.forEach(n=>{ if(n.off>last) last=n.off; }));
+    duracaoEff=OrivoxMidi.secAtTick(parsedMidi,last)/bpmFactor;
+  }catch(_){ beatTimesEff=[]; duracaoEff=0; } }
+function idxBatidaAntes(pos){ let idx=-1; for(let i=0;i<beatTimesEff.length;i++){ if(beatTimesEff[i] < pos-1e-6) idx=i; else break; } return idx; }
+const ROLL_PPS=90;   // pixels por segundo no piano-roll
+const CORES=['#2AD4C8','#E0A75E','#7FB2F0','#C78FEE','#8CD98C','#F08FA4','#F0D86B','#6FE3D0','#E89B6F','#9FA8F0','#B6E06F','#F0A0D0'];
+const BLACKPC={1:1,3:1,6:1,8:1,10:1};
+function opts(){ return {mix:mixState, semis:transporSemis, bpmFactor:bpmFactor}; }
+function effBPM(){ return Math.max(1, Math.round(bpmBase*bpmFactor)); }
+function b64FromU8(u8){ let bin=''; const CH=0x8000; for(let i=0;i<u8.length;i+=CH){ bin+=String.fromCharCode.apply(null, u8.subarray(i,i+CH)); } return btoa(bin); }
+function u8FromB64(b64){ const bin=atob(b64); const u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i); return u8; }
+
+function carregarArquivo(f){
+  const nome=(f.name||'').toLowerCase(); lastNome=(f.name||'partitura').replace(/\.[^.]+$/,''); setTitulo(lastNome);
+  $('viewer').classList.add('on'); lastXML=null; lastMIDIexport=null; lastPDFBlob=null;
+  baseMidiU8=null; parsedMidi=null; mixState={}; instrOverride={}; parteIndividual=null; modoRoll=false; coloridos={};
+  transporSemis=0; bpmFactor=1; loopA=loopB=null; loopOn=false;
+  pararPlay(); $('mixer').classList.remove('on'); $('mixList').innerHTML=''; $('transport').classList.remove('on');
+  $('vwRoll').style.display='none'; $('vwSVG').style.display='block'; $('cursor').style.display='none';
+  if(/\.pdf$/.test(nome)){
+    lastPDFBlob=f; const u=URL.createObjectURL(f);
+    $('vwPDF').src=u; $('vwPDF').style.display='block'; $('vwWrap').style.display='none'; $('playerWrap').style.display='none';
+    toast('PDF carregado: '+f.name); return;
+  }
+  if(/\.(mid|midi)$/.test(nome)){
+    $('vwPDF').style.display='none'; $('vwWrap').style.display='block';
+    const r=new FileReader();
+    r.onload=()=>{
+      const u8=new Uint8Array(r.result);
+      baseMidiU8=u8; lastMIDIexport='data:audio/midi;base64,'+b64FromU8(u8);
+      try{ parsedMidi=OrivoxMidi.parseMidi(u8); }catch(e){ parsedMidi=null; }
+      bpmBase=(parsedMidi?OrivoxMidi.bpmFromParsed(parsedMidi):120)||120; bpmFactor=1; recomputarBeats();
+      CH_TM=[]; modoRoll=true;          // MIDI não vira pentagrama: usamos piano-roll + sincronia por tempo
+      carregarNoPlayer(false);          // SEMPRE toca (independe do Verovio)
+      desenharRoll();                   // piano-roll + teclado
+      construirMixer();                 // volume/mudo por instrumento
+      atualizarTransporteUI();          // BPM, tom, loop, metrônomo
+      toast('MIDI carregado — toque para ouvir e ver o piano-roll.');
+    };
+    r.readAsArrayBuffer(f); return;
+  }
+  // MusicXML
+  $('vwPDF').style.display='none'; $('vwWrap').style.display='block';
+  const r=new FileReader(); r.onload=()=>{ lastXML=r.result; const tt=extrairTituloXML(lastXML); if(tt) setTitulo(tt); renderScore(r.result,'auto'); toast('Partitura carregada: '+f.name); }; r.readAsText(f);
+}
+
+/* ---------- Render da partitura (XML = pentagrama Verovio) + sincronia ---------- */
+let vrvToolkit=null, CH_TM=[], MEDIDAS=[], FIGURAS=[], figHl=[], _ultSysTop=null;
+function renderData(data, inputFrom){
+  const host=$('vwSVG'), wrap=$('vwWrap');
+  if(!vrvToolkit){ wrap.classList.add('empty'); host.innerHTML='Carregando o motor de notação…<br><span style="font-size:11px">precisa de internet na 1ª vez; tente importar de novo em instantes.</span>'; return false; }
+  try{
+    vrvToolkit.setOptions({pageWidth:2100, scale:46, adjustPageHeight:true, footer:'none', header:'none', font:'Bravura', inputFrom:inputFrom||'auto'});
+    vrvToolkit.loadData(data); wrap.classList.remove('empty');
+    let _svg=''; const _n=(vrvToolkit.getPageCount&&vrvToolkit.getPageCount())||1; for(let _i=1;_i<=_n;_i++) _svg+=vrvToolkit.renderToSVG(_i); host.innerHTML=_svg;
+    try{ const tm=vrvToolkit.renderToTimemap({includeMeasures:true, includeRests:true}); CH_TM = (typeof tm==='string'? JSON.parse(tm): tm) || []; }catch(_){ CH_TM=[]; }
+    return true;
+  }catch(e){ wrap.classList.add('empty'); host.innerHTML='Não consegui renderizar este arquivo.'; return false; }
+}
+// mapa TEMPO->geometria de cada COMPASSO. Fonte do tempo = mapa de tempo do Verovio, que marca
+// TODOS os compassos (inclusive os só de pausa). Pausa é figura com duração, não ausência.
+function construirMedidas(){
+  MEDIDAS=[]; const wrap=$('vwWrap'), svg=$('vwSVG').querySelector('svg'); if(!svg||!vrvToolkit) return;
+  const wr=wrap.getBoundingClientRect();
+  // tempo de início de cada compasso pelo timemap (marca compasso vazio/pausa também)
+  const mt={}; try{ for(const e of CH_TM){ const mid=e.measureOn||e.measure||(e.measures&&e.measures[0])||e.meterOn; if(mid!=null && mt[mid]==null) mt[mid]=e.tstamp; } }catch(_){}
+  const measures=$('vwSVG').querySelectorAll('g.measure'); if(!measures.length) return;   // TODAS as páginas (<svg>), não só a 1ª
+  const arr=[];
+  measures.forEach((m,ordem)=>{ const id=m.getAttribute('id'); let r; try{ r=m.getBoundingClientRect(); }catch(_){ return; }
+    let tMs = (id && mt[id]!=null)? mt[id] : null;
+    if(tMs==null){ try{ const v=vrvToolkit.getTimeForElement(id); if(v!=null && !isNaN(v)) tMs=v; }catch(_){} }
+    if(tMs==null){ const el=m.querySelector('g.note, g.rest, g.mRest'); if(el&&el.getAttribute('id')){ try{ const v=vrvToolkit.getTimeForElement(el.getAttribute('id')); if(v!=null && !isNaN(v)) tMs=v; }catch(_){} } }
+    arr.push({ ordem, tMs:(tMs==null||isNaN(tMs))?null:tMs,
+      xMin:r.left-wr.left+wrap.scrollLeft, xMax:r.right-wr.left+wrap.scrollLeft, yTop:r.top-wr.top+wrap.scrollTop, yBot:r.bottom-wr.top+wrap.scrollTop }); });
+  // nenhum compasso pode sumir: preenche tempos faltantes pela ORDEM (documento = ordem temporal)
+  if(arr.length && arr[0].tMs==null) arr[0].tMs=0;
+  for(let i=0;i<arr.length;i++){ if(arr[i].tMs==null){ let a=i-1; while(a>=0&&arr[a].tMs==null)a--; let b=i+1; while(b<arr.length&&arr[b].tMs==null)b++;
+    if(a>=0&&b<arr.length) arr[i].tMs=arr[a].tMs+(arr[b].tMs-arr[a].tMs)*((i-a)/(b-a));
+    else if(a>=0) arr[i].tMs=arr[a].tMs+(i-a)*2000;
+    else if(b<arr.length) arr[i].tMs=Math.max(0, arr[b].tMs-(b-i)*2000);
+    else arr[i].tMs=i*2000; } }
+  MEDIDAS=arr.sort((a,b)=>a.tMs-b.tMs);
+  for(let i=0;i<MEDIDAS.length;i++){ MEDIDAS[i].tEnd=(i+1<MEDIDAS.length)? MEDIDAS[i+1].tMs : MEDIDAS[i].tMs + ((MEDIDAS.length>1? (MEDIDAS[MEDIDAS.length-1].tMs-MEDIDAS[MEDIDAS.length-2].tMs):2000)); }
+  // FIGURAS: cada nota E cada pausa, com seu tempo — para "brilhar" sob a barra
+  FIGURAS=[]; const fg={};
+  $('vwSVG').querySelectorAll('g.note, g.rest, g.mRest, g.multiRest').forEach(el=>{ const id=el.getAttribute('id'); if(!id) return; let t=null; try{ const v=vrvToolkit.getTimeForElement(id); if(v!=null&&!isNaN(v)) t=v; }catch(_){} if(t==null) return; const k=Math.round(t); (fg[k]=fg[k]||[]).push(id); });
+  FIGURAS=Object.keys(fg).map(k=>({t:+k, ids:fg[k]})).sort((a,b)=>a.t-b.t);
+}
+function renderScore(data, inputFrom){
+  if(!renderData(data, inputFrom)) return;
+  modoRoll=false; $('vwRoll').style.display='none'; $('vwSVG').style.display='block';
+  // MIDI gerado da partitura, para tocar + acompanhar sincronizado + alimentar o mixer
+  try{ const b64=vrvToolkit.renderToMIDI(); if(b64){ baseMidiU8=u8FromB64(b64); if(!lastMIDIexport) lastMIDIexport='data:audio/midi;base64,'+b64;
+    try{ parsedMidi=OrivoxMidi.parseMidi(baseMidiU8); }catch(e){ parsedMidi=null; }
+    bpmBase=(parsedMidi?OrivoxMidi.bpmFromParsed(parsedMidi):120)||120; bpmFactor=1; recomputarBeats();
+    construirMedidas();   // tempos dos compassos (precisa do renderToMIDI acima) p/ o playhead
+    carregarNoPlayer(false); construirMixer(); atualizarTransporteUI();
+  } }catch(_){}
+}
+window.addEventListener('load', ()=>{
+  if(typeof verovio!=='undefined'){ verovio.module.onRuntimeInitialized=()=>{ vrvToolkit=new verovio.toolkit(); if(lastXML) renderScore(lastXML,'auto'); }; }
+});
+
+/* ===== PARTITURA INDIVIDUAL (somente VISUAL): mostra só as pautas de uma parte ===== */
+let parteIndividual=null;   // idx da faixa isolada no visual, ou null (completa). Áudio NÃO é afetado.
+// filtra o MusicXML mantendo apenas a(s) parte(s) cujo <part-name> casa com 'nomeParte'
+function filtrarXMLParte(xmlStr, nomeParte){
+  try{ const dom=new DOMParser().parseFromString(xmlStr,'application/xml'); if(dom.getElementsByTagName('parsererror').length) return null;
+    const pl=dom.getElementsByTagName('part-list')[0]; if(!pl) return null;
+    const sps=[].slice.call(dom.getElementsByTagName('score-part'));
+    const alvo=(nomeParte||'').trim();
+    const manter=sps.filter(sp=>{ const pn=sp.getElementsByTagName('part-name')[0]; return pn && pn.textContent.trim()===alvo; });
+    if(!manter.length) return null;
+    const ids={}; manter.forEach(sp=>ids[sp.getAttribute('id')]=1);
+    sps.forEach(sp=>{ if(!ids[sp.getAttribute('id')] && sp.parentNode) sp.parentNode.removeChild(sp); });
+    [].slice.call(dom.getElementsByTagName('part-group')).forEach(pg=>{ if(pg.parentNode) pg.parentNode.removeChild(pg); });
+    [].slice.call(dom.getElementsByTagName('part')).forEach(p=>{ if(p.getAttribute && p.getAttribute('id')!=null && !ids[p.getAttribute('id')] && p.parentNode) p.parentNode.removeChild(p); });
+    return new XMLSerializer().serializeToString(dom);
+  }catch(_){ return null; }
+}
+// re-renderiza SÓ o visual (SVG + MEDIDAS/FIGURAS), sem mexer em parsedMidi/áudio/mixer
+function rerenderVisual(xmlStr){
+  if(!vrvToolkit || !xmlStr) return false;
+  if(!renderData(xmlStr,'auto')) return false;
+  modoRoll=false; $('vwRoll').style.display='none'; $('vwSVG').style.display='block';
+  try{ vrvToolkit.renderToMIDI(); }catch(_){}   // habilita getTimeForElement (este MIDI é descartado)
+  construirMedidas(); _ultSysTop=null;
+  return true;
+}
+function marcarBotoesIndiv(){ document.querySelectorAll('.mixrow .indiv').forEach(b=>b.classList.toggle('on', (+b.dataset.i)===parteIndividual)); }
+/* ===== DESTAQUE DE COR (clique no quadradinho): só CONFERÊNCIA visual =====
+   O próprio Verovio desenha as notas coloridas (atributo @color no MusicXML) — método confiável.
+   Disparado pelo quadradinho; re-renderiza o SVG mas NÃO pausa a música (o áudio segue no relógio do som). */
+let coloridos={};   // { idxFaixa: true } — faixas marcadas para destaque na partitura
+// injeta color nas notas das partes marcadas; casa part-name do XML com o nome da faixa do mixer
+function construirXMLColorido(xmlStr){
+  var marcadas = parsedMidi? parsedMidi.tracks.filter(function(t){ return coloridos[t.idx]; }) : [];
+  if(!marcadas.length) return xmlStr;
+  try{ var dom=new DOMParser().parseFromString(xmlStr,'application/xml'); if(dom.getElementsByTagName('parsererror').length) return xmlStr;
+    var corPorNome={}; marcadas.forEach(function(t){ corPorNome[(t.name||'').trim()]=CORES[t.idx % CORES.length]; });
+    function corDe(nm){ nm=(nm||'').trim(); if(!nm) return null; if(corPorNome[nm]!=null) return corPorNome[nm];
+      for(var k in corPorNome){ if(!k) continue; if(nm.indexOf(k)===0 || k.indexOf(nm)===0) return corPorNome[k]; }  // tolerância por prefixo
+      return null; }
+    var idCor={}; [].slice.call(dom.getElementsByTagName('score-part')).forEach(function(sp){ var pn=sp.getElementsByTagName('part-name')[0]; var c=corDe(pn?pn.textContent:''); if(c) idCor[sp.getAttribute('id')]=c; });
+    [].slice.call(dom.getElementsByTagName('part')).forEach(function(p){ var id=p.getAttribute&&p.getAttribute('id'); var cor=id&&idCor[id]; if(!cor) return;
+      [].slice.call(p.getElementsByTagName('note')).forEach(function(n){ n.setAttribute('color', cor);
+        var nh=n.getElementsByTagName('notehead')[0]; if(nh) nh.setAttribute('color', cor);
+        var st=n.getElementsByTagName('stem')[0]; if(st) st.setAttribute('color', cor); });
+    });
+    return new XMLSerializer().serializeToString(dom);
+  }catch(_){ return xmlStr; }
+}
+// (re)desenha o VISUAL do XML conforme o estado atual: ♩ (partitura individual) + cores de conferência
+function atualizarVisualXML(){ if(modoRoll || !lastXML || !vrvToolkit) return false;
+  var xml=lastXML;
+  if(parteIndividual!=null){ var t=parsedMidi&&parsedMidi.tracks.find(function(x){return x.idx===parteIndividual;}); var nome=t?t.name:''; var f=filtrarXMLParte(lastXML,nome); if(f) xml=f; else { parteIndividual=null; marcarBotoesIndiv(); } }
+  xml=construirXMLColorido(xml);   // Verovio desenha as notas marcadas na cor do instrumento
+  return rerenderVisual(xml);
+}
+function alternarParteIndividual(trkIdx){
+  // NÃO pausa: a música segue tocando. No piano-roll é instantâneo; no MusicXML o Verovio redesenha o layout (mostra só esta pauta), mas sem parar o áudio.
+  if(modoRoll){ parteIndividual=(parteIndividual===trkIdx? null : trkIdx); desenharRoll(); marcarBotoesIndiv(); return; }
+  if(!lastXML){ toast('Partitura individual disponível para MusicXML.'); return; }
+  parteIndividual=(parteIndividual===trkIdx? null : trkIdx);
+  atualizarVisualXML();
+  toast(parteIndividual!=null? 'Pauta individual' : 'Partitura completa.');
+  marcarBotoesIndiv();
+}
+
+/* ---------- Player + mixer (mudo/volume por instrumento) ---------- */
+function midiAtualU8(){ if(!parsedMidi||!baseMidiU8) return baseMidiU8; return OrivoxMidi.isPassthrough(parsedMidi,opts())? baseMidiU8 : OrivoxMidi.build(parsedMidi,opts()); }
+function carregarNoPlayer(manterPos){
+  const mp=$('mp'); if(!mp||!baseMidiU8) return;
+  const t=manterPos?tempoAtual():0; const era=playing;
+  const u8=midiAtualU8(); let done=false;
+  const seek=()=>{ if(done) return; done=true; try{ if(manterPos && t>0.05) mp.currentTime=t; }catch(_){} if(manterPos && era){ try{ mp.start(); }catch(_){} } };
+  try{ mp.addEventListener('load', seek, {once:true}); }catch(_){}
+  mp.src='data:audio/midi;base64,'+b64FromU8(u8); $('playerWrap').style.display='block';
+  if(manterPos) setTimeout(seek, 650);
+}
+function construirMixer(){
+  const box=$('mixList'); box.innerHTML=''; mixState={};
+  const insts=(parsedMidi?parsedMidi.tracks:[]).filter(t=>t.notes && t.notes.length);
+  if(!insts.length){ $('mixer').classList.remove('on'); return; }
+  const GMN=(OrivoxMidi&&OrivoxMidi.GM)||[];
+  // lista de instrumentos em ORDEM ALFABÉTICA, mantendo o número GM (1–128)
+  const GMord=[]; for(let g=0; g<128; g++) GMord.push({g:g, n:(GMN[g]||('Instrumento '+(g+1)))}); GMord.sort((a,b)=>a.n.localeCompare(b.n,'pt-BR'));
+  insts.forEach(t=>{ const i=t.idx; mixState[i]={mute:false,vol:1,solo:false}; const cor=CORES[i%CORES.length]; const fi=faixaInfo(t);
+    let opc='<option value="drum"'+(fi.drum?' selected':'')+'>Bateria/Percussão</option>';
+    GMord.forEach((o,idx)=>{ opc+='<option value="'+o.g+'"'+(!fi.drum && fi.prog===o.g?' selected':'')+'>'+(idx+1)+'. '+o.n+'</option>'; });   // numeração CORRIDA 1–128 na ordem alfabética (value = programa GM real)
+    const row=document.createElement('div'); row.className='mixrow';
+    row.innerHTML='<span class="dot" data-i="'+i+'" style="background:'+cor+';color:'+cor+'" title="Destacar este instrumento na partitura (sua cor) — só conferência"></span>'+
+      '<span class="nm" title="'+t.name.replace(/"/g,'')+'">'+t.name+'</span>'+
+      '<select class="inst" data-i="'+i+'" title="Corrigir o instrumento desta faixa">'+opc+'</select>'+
+      '<button class="indiv" data-i="'+i+'" title="Ver só a pauta deste instrumento (apenas visual)">♩</button>'+
+      '<button class="solo" data-i="'+i+'" title="Tocar só esta(s) pista(s)">solo</button>'+
+      '<button class="mute" data-i="'+i+'">mudo</button>'+
+      '<input type="range" min="0" max="120" value="100" data-i="'+i+'" aria-label="Volume de '+t.name.replace(/"/g,'')+'">'+
+      '<span class="pct" data-pct="'+i+'">100%</span>';
+    box.appendChild(row);
+  });
+  box.querySelectorAll('.mute').forEach(b=>b.addEventListener('click',()=>{ const i=+b.dataset.i;
+    mixState[i].mute=!mixState[i].mute; b.classList.toggle('on',mixState[i].mute); b.textContent=mixState[i].mute?'mudo ✓':'mudo';
+    reconstruirSom(); atualizarRoll(); }));
+  // SOLO por pista: função ORIGINAL — afeta apenas o ÁUDIO (sem re-render, sem pausar)
+  box.querySelectorAll('.solo').forEach(b=>b.addEventListener('click',()=>{ const i=+b.dataset.i;
+    mixState[i].solo=!mixState[i].solo; b.classList.toggle('on',mixState[i].solo); b.textContent=mixState[i].solo?'solo ✓':'solo';
+    reconstruirSom(); atualizarRoll(); }));
+  // DESTAQUE DE COR: clique no quadradinho colorido pinta aquele instrumento na partitura (só conferência).
+  // O Verovio redesenha as notas coloridas, mas NÃO pausa a música (o áudio segue tocando).
+  box.querySelectorAll('.mixrow .dot').forEach(d=>d.addEventListener('click',()=>{ const i=+d.dataset.i;
+    coloridos[i]=!coloridos[i]; d.classList.toggle('on', !!coloridos[i]);
+    if(modoRoll){ atualizarRoll(); } else { atualizarVisualXML(); }   // partitura: re-render colorido; roll: só escurece os demais
+    atualizarRoll(); }));
+  // PARTITURA INDIVIDUAL (só visual): mostra apenas as pautas desta parte; clicar de novo volta à completa
+  box.querySelectorAll('.indiv').forEach(b=>b.addEventListener('click',()=>{ alternarParteIndividual(+b.dataset.i); }));
+  marcarBotoesIndiv();
+  // correção de instrumento por faixa — ajusta o timbre tocado (e percussão) sem perder a sincronia
+  box.querySelectorAll('select.inst').forEach(s=>{ const i=+s.dataset.i; s.addEventListener('change',()=>{ instrOverride[i]=s.value;
+    reconstruirSom(); carregarInstrumentos(); atualizarRoll();
+    toast('Instrumento ajustado: '+(s.value==='drum'?'Bateria/Percussão':(GMN[+s.value]||('prog '+s.value)))); }); });
+  box.querySelectorAll('input[type=range]').forEach(s=>{ const i=+s.dataset.i; const pct=box.querySelector('[data-pct="'+i+'"]');
+    s.addEventListener('input',()=>{ pct.textContent=s.value+'%'; mixState[i].vol=(+s.value)/100; atualizarRoll(); });
+    s.addEventListener('change',()=>{ reconstruirSom(); }); });
+  $('mixer').classList.add('on');
+  if(typeof aplicarIdioma==='function') aplicarIdioma();   // traduz tooltips/rotulos recém-criados
+}
+
+/* ---------- Piano-roll (visual do MIDI, com teclado fixo) ---------- */
+let rollRH=11, rollH=0, rollMinLocal=48;
+function rollY(p){ return rollH-16-(p-rollMinLocal)*rollRH; }
+function desenharRoll(){
+  const host=$('vwRoll'), wrap=$('vwWrap'); $('vwSVG').style.display='none'; host.style.display='block'; wrap.classList.remove('empty');
+  if(!parsedMidi){ host.innerHTML='<div style="padding:40px;color:#777;text-align:center;font-size:13px">Não consegui ler este MIDI.</div>'; return; }
+  const insts=parsedMidi.tracks.filter(t=>t.notes && t.notes.length);
+  let maxT=0,minP=127,maxP=0;
+  insts.forEach(t=>t.notes.forEach(n=>{ const pit=n.pitch+(t.isDrum?0:transporSemis); maxT=Math.max(maxT,OrivoxMidi.tickToSec(parsedMidi,n.off)); if(pit<minP)minP=pit; if(pit>maxP)maxP=pit; }));
+  if(maxP<minP){ minP=48; maxP=72; } minP=Math.max(0,minP-1); maxP=Math.min(127,maxP+1);
+  rollMinP=minP; rollMaxP=maxP; rollMinLocal=minP;
+  rollDur=(maxT||1)/bpmFactor;                 // segundos efetivos (após BPM)
+  const rh=11, rows=(maxP-minP+1), H=rows*rh+28; rollRH=rh; rollH=H;
+  // teclado fixo (esquerda)
+  const KW=56; const NOMEOIT=p=>'C'+(Math.floor(p/12)-1);
+  let keys='<svg id="rollKeys" width="'+KW+'" height="'+H+'" viewBox="0 0 '+KW+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="background:#20283a">';
+  for(let p=minP;p<=maxP;p++){ const pc=((p%12)+12)%12, yy=rollY(p), preta=BLACKPC[pc];
+    keys+='<rect id="k'+p+'" x="0" y="'+(yy-rh+2)+'" width="'+KW+'" height="'+(rh-1)+'" fill="'+(preta?'#2b2b2b':'#f3f3ee')+'" stroke="#11151f" stroke-width="0.5"/>';
+    if(pc===0) keys+='<text x="'+(KW-3)+'" y="'+(yy-1)+'" font-size="8" text-anchor="end" fill="#555">'+NOMEOIT(p)+'</text>'; }
+  keys+='</svg>';
+  // notas (rolável)
+  const W=Math.max(620, Math.ceil(rollDur*ROLL_PPS)+30);
+  let nt='<svg id="rollNotes" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="background:#F7F7F4">';
+  for(let p=minP;p<=maxP;p++){ if(BLACKPC[((p%12)+12)%12]){ const yy=rollY(p); nt+='<rect x="0" y="'+(yy-rh+2)+'" width="'+W+'" height="'+(rh-1)+'" fill="#00000008"/>'; } }
+  for(let s=0;s<=Math.ceil(rollDur);s++){ const x=10+s*ROLL_PPS; nt+='<line x1="'+x+'" y1="4" x2="'+x+'" y2="'+(H-14)+'" stroke="#e4e4de"/>'; if(s%5===0) nt+='<text x="'+(x+2)+'" y="'+(H-3)+'" font-size="9" fill="#9a9a90">'+s+'s</text>'; }
+  insts.forEach(t=>{ if(parteIndividual!=null && t.idx!==parteIndividual) return;   // partitura individual (visual) no piano-roll
+    const cor=CORES[t.idx%CORES.length];
+    t.notes.forEach(n=>{ const pit=n.pitch+(t.isDrum?0:transporSemis); if(pit<minP||pit>maxP) return;
+      const x=10+(OrivoxMidi.tickToSec(parsedMidi,n.on)/bpmFactor)*ROLL_PPS;
+      const w=Math.max(2,((OrivoxMidi.tickToSec(parsedMidi,n.off)-OrivoxMidi.tickToSec(parsedMidi,n.on))/bpmFactor)*ROLL_PPS);
+      nt+='<rect x="'+x.toFixed(1)+'" y="'+rollY(pit)+'" width="'+w.toFixed(1)+'" height="'+(rh-2)+'" rx="2" fill="'+cor+'" fill-opacity="0.85" data-trk="'+t.idx+'"/>'; }); });
+  nt+='</svg>';
+  host.innerHTML='<div class="rollgrid">'+keys+'<div id="rollScroll">'+nt+'<div id="rollCursor"></div><div id="loopMarks"></div></div></div>';
+  atualizarRoll(); desenharLoopMarks();
+}
+function atualizarRoll(){ if(!modoRoll) return; const algumCor=Object.keys(coloridos).some(k=>coloridos[k]);
+  document.querySelectorAll('#rollNotes rect[data-trk]').forEach(r=>{ const i=+r.dataset.trk; const m=mixState[i]||{}; const v=(m.vol==null?1:Math.min(1,m.vol));
+    let op = m.mute?0.12:(0.3+0.55*v); if(algumCor && !coloridos[i]) op=0.1;   // conferência: escurece os não destacados
+    r.setAttribute('fill-opacity', op); }); }
+function destacarTeclas(tEff){
+  if(!parsedMidi) return; const origT=tEff*bpmFactor; const soando={};
+  parsedMidi.tracks.forEach(t=>{ if(mixState[t.idx]&&mixState[t.idx].mute) return; const sh=t.isDrum?0:transporSemis;
+    for(const n of t.notes){ const on=OrivoxMidi.tickToSec(parsedMidi,n.on); if(on>origT) break; const off=OrivoxMidi.tickToSec(parsedMidi,n.off); if(origT<off) soando[n.pitch+sh]=1; } });
+  for(let p=rollMinP;p<=rollMaxP;p++){ const k=document.getElementById('k'+p); if(!k) continue; const preta=BLACKPC[((p%12)+12)%12];
+    k.setAttribute('fill', soando[p]?'#2AD4C8':(preta?'#2b2b2b':'#f3f3ee')); }
+}
+function desenharLoopMarks(){ const lm=$('loopMarks'); if(!lm) return; lm.innerHTML='';
+  [loopA,loopB].forEach(t=>{ if(t==null) return; const d=document.createElement('div'); d.className='loopmark'; d.style.left=(10+(t/bpmFactor)*ROLL_PPS)+'px'; lm.appendChild(d); }); }
+
+/* ---------- Cursor + destaque seguindo o som ---------- */
+let playing=false, raf=null, t0=0, curHl=[];
+function limparHl(){ curHl.forEach(id=>{ const g=document.getElementById(id); if(g) g.classList.remove('vw-hl'); }); curHl=[]; }
+function posCursor(id){
+  const g=id&&document.getElementById(id), wrap=$('vwWrap'), cur=$('cursor'); if(!g||!cur) return;
+  const gr=g.getBoundingClientRect(), wr=wrap.getBoundingClientRect();
+  const x=gr.left-wr.left+wrap.scrollLeft+gr.width/2;
+  cur.style.display='block'; cur.style.left=x+'px';
+  if(x<wrap.scrollLeft+40 || x>wrap.scrollLeft+wrap.clientWidth-40) wrap.scrollLeft=Math.max(0,x-wrap.clientWidth*0.4);
+}
+function destacarEm(tSec){
+  if(!CH_TM.length) return; const tms=tSec*bpmFactor*1000; let ent=null;   // bpmFactor: playback acelerado/lento
+  for(let i=0;i<CH_TM.length;i++){ if(CH_TM[i].tstamp<=tms) ent=CH_TM[i]; else break; }
+  if(!ent) return; const ids=ent.on||[]; const key=ids.join(',');
+  if(key===curHl.join(',')){ if(ids[0]) posCursor(ids[0]); return; }
+  limparHl(); ids.forEach(id=>{ const g=document.getElementById(id); if(g) g.classList.add('vw-hl'); }); curHl=ids.slice();
+  if(ids[0]) posCursor(ids[0]);
+}
+function rollCursor(tEff){ const sc=$('rollScroll'), cur=$('rollCursor'); if(!sc||!cur) return; const x=10+tEff*ROLL_PPS;
+  cur.style.display='block'; cur.style.left=x+'px';
+  if(x<sc.scrollLeft+40 || x>sc.scrollLeft+sc.clientWidth-40) sc.scrollLeft=Math.max(0,x-sc.clientWidth*0.4);
+  destacarTeclas(tEff);
+  if(rollDur && tEff>=rollDur-0.04) parar();
+}
+/* ---- Playhead DESLIZANTE no XML: posição por LERP de TEMPO dentro do compasso (não por nota) ---- */
+function destacarNotas(tSec){ if(!CH_TM.length) return; const tms=tSec*bpmFactor*1000; let ent=null;
+  for(let i=0;i<CH_TM.length;i++){ if(CH_TM[i].tstamp<=tms) ent=CH_TM[i]; else break; }
+  const ids=(ent&&ent.on)||[]; const key=ids.join(','); if(key===curHl.join(',')) return;
+  limparHl(); ids.forEach(id=>{ const g=document.getElementById(id); if(g) g.classList.add('vw-hl'); }); curHl=ids.slice(); }
+// brilha a figura (nota OU pausa) sob a barra
+function destacarFigura(tSec){ if(!FIGURAS.length){ destacarNotas(tSec); return; } const ms=tSec*bpmFactor*1000; let cur=null;
+  for(let i=0;i<FIGURAS.length;i++){ if(FIGURAS[i].t<=ms+1) cur=FIGURAS[i]; else break; }
+  const ids=cur?cur.ids:[]; const key=ids.join(','); if(key===figHl.join(',')) return;
+  figHl.forEach(id=>{ const g=document.getElementById(id); if(g) g.classList.remove('vw-hl'); });
+  ids.forEach(id=>{ const g=document.getElementById(id); if(g) g.classList.add('vw-hl'); }); figHl=ids.slice(); }
+function playheadLerp(tSec){ const cur=$('cursor'), wrap=$('vwWrap');
+  if(!MEDIDAS.length){ destacarEm(tSec); return; }                      // fallback: comportamento antigo
+  const ms=tSec*bpmFactor*1000; let m=MEDIDAS[0];
+  for(let i=0;i<MEDIDAS.length;i++){ if(MEDIDAS[i].tMs<=ms+0.5) m=MEDIDAS[i]; else break; }
+  const span=(m.tEnd-m.tMs)||1; const frac=Math.max(0,Math.min(1,(ms-m.tMs)/span));
+  const x=m.xMin+(m.xMax-m.xMin)*frac;
+  cur.style.display='block'; cur.style.left=x+'px'; cur.style.top=(m.yTop-2)+'px'; cur.style.height=(m.yBot-m.yTop+4)+'px'; cur.style.bottom='auto';
+  // rolagem VERTICAL só quando muda de sistema (linha) — não briga com a rolagem manual dentro da linha
+  if(_ultSysTop==null || Math.abs(m.yTop-_ultSysTop)>4){ _ultSysTop=m.yTop; if(m.yTop<wrap.scrollTop+10 || m.yBot>wrap.scrollTop+wrap.clientHeight-10) wrap.scrollTop=Math.max(0, m.yTop - wrap.clientHeight*0.30); }
+  // rolagem HORIZONTAL acompanha o x (quando a partitura é mais larga que a área)
+  if(x<wrap.scrollLeft+40 || x>wrap.scrollLeft+wrap.clientWidth-40) wrap.scrollLeft=Math.max(0, x - wrap.clientWidth*0.4);
+  destacarFigura(tSec);
+}
+function cursorInicio(){   // na pré-contagem o cursor espera parado no início REAL (pula o silêncio do MIDI)
+  if(modoRoll){ const cur=$('rollCursor'), sc=$('rollScroll'); if(cur){ const x=10+Math.max(0,_inicioAtual)*ROLL_PPS; cur.style.display='block'; cur.style.left=x+'px'; if(sc && (x<sc.scrollLeft+40 || x>sc.scrollLeft+sc.clientWidth-40)) sc.scrollLeft=Math.max(0,x-sc.clientWidth*0.4); } }
+  else { const cur=$('cursor'); if(cur && MEDIDAS.length){ const m=MEDIDAS[0]; cur.style.display='block'; cur.style.left=m.xMin+'px'; cur.style.top=(m.yTop-2)+'px'; cur.style.height=(m.yBot-m.yTop+4)+'px'; cur.style.bottom='auto'; } }
+}
+function temMidi(){ return !!(baseMidiU8 && parsedMidi); }   // motor próprio: não depende do player externo
+function tempoAtual(){ const mp=$('mp'); try{ return (mp && typeof mp.currentTime==='number')? mp.currentTime : 0; }catch(_){ return 0; } }
+function pararPlay(){ const mp=$('mp'); try{ if(mp&&mp.stop) mp.stop(); }catch(_){} if(typeof pararVozes==='function') pararVozes(); playing=false; estaAtivo=false; emContagem=false; posPausa=0; posVirtual=0; if(raf) cancelAnimationFrame(raf); if(typeof atualizarBotoes==='function') atualizarBotoes(); }
+
+/* ----- Metrônomo (Web Audio) + pré-contagem ----- */
+let actx=null; function ac(){ if(!actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(_){ actx=null; } } return actx; }
+// clique agendado no RELÓGIO DE ÁUDIO (preciso, sample-accurate) — padrão SoundSlice
+function clickAt(when, forte){ const c=ac(); if(!c) return; const o=c.createOscillator(), g=c.createGain();
+  o.frequency.value=forte?1600:1150; g.gain.setValueAtTime(0.0001,when); g.gain.exponentialRampToValueAtTime(forte?0.5:0.3,when+0.001); g.gain.exponentialRampToValueAtTime(0.0001,when+0.06);
+  o.connect(g).connect(metroBus()||c.destination); o.start(when); o.stop(when+0.08); }
+function click(forte){ const c=ac(); if(c) clickAt(c.currentTime, forte); }       // imediato (pré-contagem)
+let metroSchedIdx=-1;   // último beat já agendado
+// agenda cliques seguindo a GRADE REAL do MIDI (mapa de andamento), no relógio de áudio
+function metronomoAgenda(tEff){ if(!metroOn || !beatTimesEff.length) return; const c=ac(); if(!c) return;
+  while(metroSchedIdx+1 < beatTimesEff.length && beatTimesEff[metroSchedIdx+1] < tEff+0.25){
+    metroSchedIdx++; const bt=beatTimesEff[metroSchedIdx]; if(bt>=tEff-0.05){ const when=c.currentTime+Math.max(0, bt-tEff); clickAt(when, metroSchedIdx%BEATS_BAR===0); } } }
+function iniciarComContagem(depois){ const n=(+$('preCount').value||0)*BEATS_BAR; if(n<=0){ depois(); return; }
+  const c=ac(); const bd=60/effBPM(); $('play').innerHTML=lbl('● contando…');
+  if(c){ for(let i=0;i<n;i++) clickAt(c.currentTime+0.05+i*bd, i%BEATS_BAR===0); }   // contagem agendada, precisa
+  setTimeout(depois, (n*bd)*1000 + 60); }
+
+function atualizarTransporteUI(){ $('transport').classList.add('on'); $('bpmVal').value=effBPM(); $('trVal').textContent=(transporSemis>0?'+':'')+transporSemis;
+  ['loopA','loopB','loopOn'].forEach(id=>$(id).classList.remove('on')); $('metro').classList.toggle('on',metroOn); }
+
+let posPausa=0, estaAtivo=false, emContagem=false, posVirtual=0, audioT0=0, sincronizado=false, ancorado=false, _inicioAtual=0;
+let magLat=0, mpStartWall=0;   // (legado, não usado nesta arquitetura)
+let posMetro=0;                // linha de tempo do RELÓGIO DE ÁUDIO (metrônomo som+visual) — contínua, nunca congela
+function atualizarBotoes(){ const pb=$('play'); if(pb) pb.classList.toggle('on', estaAtivo); }
+// posição usada pelo metrônomo VISUAL — segue o relógio de áudio (pulsa inclusive nas pausas)
+function posReproducao(){ return posMetro; }
+function ativo(){ return estaAtivo; }
+function relogio(){ const c=ac(); return c? c.currentTime : performance.now()/1000; }
+/* ===== Metrônomo agendado no RELÓGIO DE ÁUDIO (padrão SoundSlice) =====
+   Monta a pré-contagem + as batidas da música como UMA sequência contínua e agenda à frente,
+   ANTES do mp.start(). Assim o click nunca pára (imune a travadas do RAF / carga do player). */
+// Metrônomo e visual tocam da MESMA posição (posVirtual), no MESMO loop (RAF) — nunca descolam.
+// metroBeats: pré-contagem (posições NEGATIVAS) + batidas da música (>=0), em espaço de posVirtual.
+let metroBeats=[], metroBeatPtr=0;
+function montarBatidas(n, bd, inicioPos){
+  metroBeats=[];
+  for(let i=0;i<n;i++) metroBeats.push({pos: inicioPos-(n-i)*bd, forte:(i%BEATS_BAR===0)});         // contagem ANTES do início real
+  for(let k=0;k<beatTimesEff.length;k++){ if(beatTimesEff[k]<inicioPos-1e-6) continue; metroBeats.push({pos:beatTimesEff[k], forte:(k%BEATS_BAR===0)}); }
+  metroBeats.sort((a,b)=>a.pos-b.pos); metroBeatPtr=0;
+}
+function resetMetroPtr(pos){ metroBeatPtr=0; while(metroBeatPtr<metroBeats.length && metroBeats[metroBeatPtr].pos < pos-0.06) metroBeatPtr++; }
+// agenda o SOM no relógio de áudio, mas a partir da MESMA posVirtual do cursor/visual
+function metronomoRAF(pos){ const c=ac();
+  while(metroBeatPtr<metroBeats.length && metroBeats[metroBeatPtr].pos < pos+0.12){ const b=metroBeats[metroBeatPtr++]; if(metroOn && c && b.pos>=pos-0.06) clickAt(c.currentTime+Math.max(0,b.pos-pos), b.forte); } }
+function pararMetro(){ metroBeats=[]; metroBeatPtr=0; }
+
+/* ===== MOTOR DE SOM próprio: a BARRA dispara cada nota no MESMO relógio de áudio =====
+   Cada figura é agendada em tempo ABSOLUTO (nn.t + audioT0) → soa exatamente quando a barra
+   a cruza. Sem player externo, sem latência para compensar, igual em qualquer andamento. */
+let notasAgenda=[], notaPtr=0, vozesAtivas=[];
+// ===== Timbres REAIS via WebAudioFont (Surikov): presets GM, agendados no NOSSO relógio =====
+let WAF=null, WAFpreset={}, WAFload={};   // player, preset melódico por programa GM, flag
+let WAFdrum={}, WAFdrumLoad={};           // samples REAIS de bateria por nota de percussão GM
+// ===== SpessaSynth + MuseScore General (motor PRINCIPAL quando carrega; senão, WebAudioFont) =====
+let SP=null, SPready=false, SPfail=false, SPchan={}, SPnext=0, SPdrumSet=false;
+function iniciarSpessa(){ if(SP||SPready||SPfail||!window.__spessaInit) return; const c=ac(); if(!c) return;
+  try{ window.__spessaInit(c, masterOut()).then(s=>{ SP=s; SPready=true; try{ toast('MuseScore General pronto — som real completo.'); }catch(_){} })
+    .catch(()=>{ SPfail=true; }); }catch(_){ SPfail=true; } }
+function spCanal(nn){ const synth=SP; if(!synth) return 0;
+  if(nn.drum){ if(!SPdrumSet){ try{ synth.midiChannels && synth.midiChannels[9] && synth.midiChannels[9].setDrums(true); }catch(_){} SPdrumSet=true; } return 9; }
+  if(SPchan[nn.trk]==null){ let ch=SPnext++; if(ch===9) ch=SPnext++; if(ch>15) ch=ch%16; SPchan[nn.trk]=ch; try{ synth.programChange(ch, nn.prog); }catch(_){} }
+  return SPchan[nn.trk]; }
+// correção manual de instrumento por faixa (o usuário ajusta o que a transcrição detectou errado)
+let instrOverride={};
+function faixaInfo(t){ const ov=instrOverride[t.idx];
+  if(ov==='drum') return {drum:true, prog:0};
+  if(ov!=null && ov!==''){ const p=+ov; return {drum:false, prog:(p>=0&&p<=127?p:0)}; }
+  return {drum:!!t.isDrum, prog:(t.program>=0&&t.program<=127?t.program:0)}; }
+function progFaixa(t){ return faixaInfo(t).prog; }
+function initWAF(){ if(WAF || !window.WebAudioFontPlayer) return; try{ WAF=new WebAudioFontPlayer(); }catch(_){ WAF=null; } }
+// preset FluidR3 por programa GM: arquivo "<prog*10 em 4 dígitos>_FluidR3_GM_sf2_file.js"
+function wafPreset(prog){ const pre=('0000'+(prog*10)).slice(-4); return { url:'https://surikov.github.io/webaudiofontdata/sound/'+pre+'_FluidR3_GM_sf2_file.js', variable:'_tone_'+pre+'_FluidR3_GM_sf2_file' }; }
+// carrega sob demanda só os instrumentos que a peça usa (lazy-load); enquanto não chega, usa a síntese
+function carregarInstrumentos(){ if(!parsedMidi) return; const c=ac(); if(!c) return; iniciarSpessa(); initWAF(); if(!WAF) return;
+  const pedidos=[];
+  parsedMidi.tracks.forEach(t=>{ const fi=faixaInfo(t); if(fi.drum || !(t.notes&&t.notes.length)) return; const prog=fi.prog; if(WAFpreset[prog]||WAFload[prog]) return;
+    WAFload[prog]=true; const info=wafPreset(prog);
+    try{ WAF.loader.startLoad(c, info.url, info.variable); pedidos.push({prog:prog, v:info.variable}); }catch(_){ WAFload[prog]=false; } });
+  // SAMPLES REAIS de bateria: para cada nota de percussão usada, carrega o preset de bateria do WebAudioFont
+  const dp=new Set(); parsedMidi.tracks.forEach(t=>{ if(faixaInfo(t).drum) t.notes.forEach(n=>dp.add(n.pitch)); });
+  dp.forEach(pit=>{ if(WAFdrum[pit]||WAFdrumLoad[pit]) return; WAFdrumLoad[pit]=true;
+    try{ const idx=WAF.loader.findDrum(pit); const info=WAF.loader.drumInfo(idx); WAF.loader.startLoad(c, info.url, info.variable); pedidos.push({drumPit:pit, v:info.variable}); }catch(_){ WAFdrumLoad[pit]=false; } });
+  if(pedidos.length){ try{ WAF.loader.waitLoad(()=>{ pedidos.forEach(pp=>{ try{
+        if(pp.drumPit!=null){ if(window[pp.v]) WAFdrum[pp.drumPit]=window[pp.v]; else WAFdrumLoad[pp.drumPit]=false; }
+        else { if(window[pp.v]) WAFpreset[pp.prog]=window[pp.v]; else WAFload[pp.prog]=false; } }catch(_){} }); }); }
+    catch(_){ pedidos.forEach(pp=>{ if(pp.drumPit!=null) WAFdrumLoad[pp.drumPit]=false; else WAFload[pp.prog]=false; }); } } }
+function freqMidi(p){ return 440*Math.pow(2,(p-69)/12); }
+// monta a lista de notas (aplicando mudo/volume, transposição e BPM), em segundos EFETIVOS
+function montarNotas(inicioPos){ notasAgenda=[]; if(!parsedMidi) return;
+  const soloAtivo=Object.keys(mixState).some(k=>mixState[k]&&mixState[k].solo);   // há alguma pista em solo?
+  parsedMidi.tracks.forEach(t=>{ const i=t.idx; const m=mixState[i]||{}; if(m.mute) return; if(soloAtivo && !m.solo) return; const vol=(m.vol==null?1:m.vol); if(vol<=0) return; const fi=faixaInfo(t); const sh=fi.drum?0:transporSemis;
+    t.notes.forEach(n=>{ const tOn=OrivoxMidi.tickToSec(parsedMidi,n.on)/bpmFactor, tOff=OrivoxMidi.tickToSec(parsedMidi,n.off)/bpmFactor;
+      if(tOff<inicioPos-1e-3) return; notasAgenda.push({t:tOn, dur:Math.max(0.05,tOff-tOn), pit:n.pitch+sh, drum:fi.drum, vol:vol, trk:i, prog:fi.prog}); }); });
+  notasAgenda.sort((a,b)=>a.t-b.t); notaPtr=0; }
+function resetNotaPtr(pos){ notaPtr=0; while(notaPtr<notasAgenda.length && notasAgenda[notaPtr].t < pos-0.02) notaPtr++; }
+// agenda à frente as notas cujo tempo cai na janela — no relógio de áudio (preciso)
+function sintetizadorRAF(pos){ const c=ac(); if(!c) return;
+  while(notaPtr<notasAgenda.length && notasAgenda[notaPtr].t < pos+0.18){ const nn=notasAgenda[notaPtr++]; if(nn.t>=pos-0.05){ tocarNota(c.currentTime+Math.max(0,nn.t-pos), nn); } } }
+// ===== MIX: barramento mestre com limitador + níveis por família de instrumento (equilíbrio agradável) =====
+let masterNode=null, metroGainNode=null, gGeral=0.95, gMetro=0.9;
+function masterOut(){ const c=ac(); if(!c) return null;
+  if(!masterNode){ try{ const comp=c.createDynamicsCompressor(); comp.threshold.value=-12; comp.knee.value=24; comp.ratio.value=3; comp.attack.value=0.004; comp.release.value=0.22;
+    const g=c.createGain(); g.gain.value=gGeral; g.connect(comp); comp.connect(c.destination); masterNode=g; }catch(_){ masterNode=c.destination; } }
+  return masterNode; }
+// barramento do metrônomo (volume independente)
+function metroBus(){ const c=ac(); if(!c) return null; if(!metroGainNode){ try{ metroGainNode=c.createGain(); metroGainNode.gain.value=gMetro; metroGainNode.connect(c.destination); }catch(_){ metroGainNode=c.destination; } } return metroGainNode; }
+function setVolGeral(v){ gGeral=Math.max(0,Math.min(1.5,v)); if(masterNode&&masterNode.gain){ try{ masterNode.gain.value=gGeral; }catch(_){} } }
+function setVolMetro(v){ gMetro=Math.max(0,Math.min(1.5,v)); if(metroGainNode&&metroGainNode.gain){ try{ metroGainNode.gain.value=gMetro; }catch(_){} } }
+// nível relativo por família GM — piano mais contido; baixo e sopros com presença equilibrada
+function mixNivel(prog){ if(prog<=7) return 0.42; if(prog<=15) return 0.6; if(prog<=23) return 0.5; if(prog<=31) return 0.6;
+  if(prog<=39) return 0.72; if(prog<=47) return 0.58; if(prog<=55) return 0.62; if(prog<=63) return 0.5; if(prog<=71) return 0.55; if(prog<=79) return 0.55; return 0.58; }
+// bateria sintetizada por TIPO de percussão GM (bumbo, caixa, chimbau, toms, pratos) — clara e presente
+function tocarBateria(when, pit, v){ const c=ac(); const out=masterOut(); if(!c||!out) return;
+  const ruido=(dur,tipo,freq,g0)=>{ const N=Math.max(1,Math.ceil(c.sampleRate*dur)); const buf=c.createBuffer(1,N,c.sampleRate); const d=buf.getChannelData(0);
+    for(let i=0;i<N;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/N,1.6);
+    const src=c.createBufferSource(); src.buffer=buf; const f=c.createBiquadFilter(); f.type=tipo; f.frequency.value=freq; const g=c.createGain(); g.gain.value=g0*v;
+    src.connect(f).connect(g).connect(out); src.start(when); src.stop(when+dur); vozesAtivas.push({src,g}); };
+  const tom=(f0,f1,dur,g0)=>{ const o=c.createOscillator(), g=c.createGain(); o.frequency.setValueAtTime(f0,when); o.frequency.exponentialRampToValueAtTime(Math.max(25,f1),when+dur);
+    g.gain.setValueAtTime(g0*v,when); g.gain.exponentialRampToValueAtTime(0.0001,when+dur); o.connect(g).connect(out); o.start(when); o.stop(when+dur+0.02); vozesAtivas.push({o1:o,g}); };
+  if(pit===35||pit===36){ tom(160,45,0.19,1.0); }                                        // bumbo
+  else if(pit===38||pit===40){ tom(240,140,0.10,0.35); ruido(0.16,'highpass',1600,0.7); } // caixa
+  else if(pit===37||pit===39){ ruido(0.07,'highpass',2200,0.6); }                         // rimshot/palma
+  else if(pit===42||pit===44){ ruido(0.045,'highpass',8000,0.5); }                        // chimbau fechado
+  else if(pit===46){ ruido(0.2,'highpass',8000,0.45); }                                   // chimbau aberto
+  else if(pit===49||pit===57||pit===55||pit===52){ ruido(0.5,'highpass',5000,0.5); }      // crash/splash
+  else if(pit===51||pit===59||pit===53){ ruido(0.3,'highpass',7000,0.4); }                // ride
+  else if(pit>=41&&pit<=50){ tom(190,95,0.16,0.6); }                                      // toms
+  else { ruido(0.09,'bandpass',4000,0.5); } }
+function tocarNota(when, nn){ const c=ac(); if(!c) return; const vol=Math.max(0,Math.min(1,nn.vol)); if(vol<=0) return;
+  const out=masterOut();
+  // MOTOR PRINCIPAL: MuseScore General (SpessaSynth), agendado com tempo absoluto (mesma barra)
+  if(SP && SPready){ try{ const ch=spCanal(nn); const velo=Math.max(1,Math.round(112*Math.min(1,vol))); SP.noteOn(ch, nn.pit, velo, {time:when}); SP.noteOff(ch, nn.pit, {time:when+Math.min(nn.dur,6)}); return; }catch(_){} }
+  if(nn.drum){ // SAMPLE REAL de bateria quando carregou; senão, kit sintetizado como ponte
+    if(WAF && WAFdrum[nn.pit]){ try{ const env=WAF.queueWaveTable(c, out, WAFdrum[nn.pit], when, nn.pit, 2, Math.min(1.2, vol)); if(env){ vozesAtivas.push({waf:env}); return; } }catch(_){} }
+    tocarBateria(when, nn.pit, vol*0.9); return; }
+  // TIMBRE REAL (WebAudioFont) quando o preset já carregou — queueWaveTable com 'when' ABSOLUTO (mesma barra)
+  if(WAF && WAFpreset[nn.prog]){ try{ const env=WAF.queueWaveTable(c, out, WAFpreset[nn.prog], when, nn.pit, Math.min(nn.dur,6), Math.min(1, vol*mixNivel(nn.prog))); if(env){ vozesAtivas.push({waf:env}); return; } }catch(_){} }
+  // FALLBACK sintetizado (enquanto o timbre real não chega), já no nível do instrumento
+  const f=freqMidi(nn.pit), o1=c.createOscillator(), o2=c.createOscillator(), o3=c.createOscillator(), g=c.createGain();
+  o1.type='triangle'; o2.type='sine'; o3.type='sine'; o1.frequency.value=f; o2.frequency.value=f; o2.detune.value=5; o3.frequency.value=f/2;
+  const peak=Math.max(0.05, vol*mixNivel(nn.prog)), dur=Math.min(nn.dur,3);
+  g.gain.setValueAtTime(0.0001,when); g.gain.exponentialRampToValueAtTime(peak,when+0.012);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0001,peak*0.5),when+Math.min(dur,0.4));
+  g.gain.exponentialRampToValueAtTime(0.0001,when+dur+0.1);
+  o1.connect(g); o2.connect(g); o3.connect(g); g.connect(out); o1.start(when); o2.start(when); o3.start(when);
+  o1.stop(when+dur+0.14); o2.stop(when+dur+0.14); o3.stop(when+dur+0.14);
+  vozesAtivas.push({o1,o2,o3,g}); }
+function pararVozes(){ const c=ac(); const tn=c?c.currentTime:0;
+  try{ if(SP && SP.stopAll) SP.stopAll(true); }catch(_){}
+  vozesAtivas.forEach(v=>{ try{ if(v.g){ v.g.gain.cancelScheduledValues(tn); v.g.gain.setValueAtTime(0.0001,tn); } }catch(_){}
+    try{ v.o1&&v.o1.stop(tn+0.02); }catch(_){} try{ v.o2&&v.o2.stop(tn+0.02); }catch(_){} try{ v.o3&&v.o3.stop(tn+0.02); }catch(_){} try{ v.src&&v.src.stop(tn+0.02); }catch(_){} try{ v.waf&&v.waf.cancel&&v.waf.cancel(); }catch(_){} });
+  try{ if(WAF) WAF.cancelQueue(c); }catch(_){}
+  vozesAtivas=[]; }
+
+// loop ÚNICO de reprodução (usado por tocar e retomar) — relógio de áudio mestre
+function stepPlayback(){ if(!estaAtivo) return;
+  posVirtual = relogio() - audioT0;                    // relógio de áudio contínuo (nunca congela)
+  posMetro = posVirtual;                               // metrônomo visual lê a mesma linha de tempo
+  metronomoRAF(posVirtual);                            // SOM do metrônomo — mesmo relógio
+  if(emContagem){ cursorInicio(); }                    // pré-contagem: cursor espera no início
+  else {
+    sintetizadorRAF(posVirtual);                       // SOM das notas — disparado pela barra, no mesmo relógio
+    if(modoRoll) rollCursor(posVirtual); else playheadLerp(posVirtual);   // desliza pelas pausas; cai no tempo 2 junto com o metrônomo
+    if(loopOn && loopA!=null && loopB!=null && loopB>loopA){ const bEff=loopB/bpmFactor, aEff=loopA/bpmFactor; if(posVirtual>=bEff-0.02){ pararVozes(); audioT0=relogio()-aEff; resetMetroPtr(aEff); resetNotaPtr(aEff); } }
+    if(duracaoEff>0 && posVirtual>=duracaoEff+0.1){ parar(); return; }
+  }
+  raf=requestAnimationFrame(stepPlayback); }
+// retoma de onde pausou, SEM pré-contagem, mantendo metrônomo/execução/visual/barra
+function retomar(){ if(estaAtivo || !temMidi()) return; if(posPausa<=0.001){ tocar(); return; }
+  const inicioPos=posPausa, agora=relogio(), downbeat=agora+0.12; audioT0=downbeat-inicioPos; _inicioAtual=inicioPos;
+  estaAtivo=true; emContagem=false; playing=true; _ultSysTop=null; $('play').innerHTML=lbl('▶ Tocar'); atualizarBotoes();
+  const bd=(beatTimesEff.length>1?(beatTimesEff[1]-beatTimesEff[0]):60/effBPM());
+  montarBatidas(0, bd, inicioPos); resetMetroPtr(inicioPos-0.01);
+  montarNotas(inicioPos); resetNotaPtr(inicioPos); carregarInstrumentos();
+  raf=requestAnimationFrame(stepPlayback); toast('Retomando em '+inicioPos.toFixed(1)+'s.'); }
+
+function tocar(){ if(estaAtivo) return;
+  if($('vwPDF').style.display==='block'){ toast('O PDF não toca — importe o MusicXML ou MIDI para acompanhar.'); return; }
+  if(temMidi()){ const mp=$('mp');
+    const n=(+$('preCount').value||0)*BEATS_BAR;
+    const bd=(beatTimesEff.length>1? (beatTimesEff[1]-beatTimesEff[0]) : 60/effBPM());   // casa com o 1º tempo da música
+    const inicioPos=(posPausa>0.05? posPausa : 0); _inicioAtual=inicioPos;   // toca desde o início REAL (inclui os compassos de pausa iniciais do arquivo)
+    const agora=relogio();
+    const downbeat = agora + (n>0? n*bd : 0) + 0.12;
+    audioT0 = downbeat - inicioPos;                    // posVirtual = relogio() - audioT0
+    estaAtivo=true; emContagem=(n>0); playing=!emContagem; sincronizado=false; ancorado=false; _ultSysTop=null;
+    $('play').innerHTML = emContagem? lbl('● contando…') : lbl('▶ Tocar'); atualizarBotoes();
+    montarBatidas(n, bd, inicioPos); resetMetroPtr(inicioPos - (n>0? n*bd : 0) - 0.01);
+    montarNotas(inicioPos); resetNotaPtr(inicioPos); carregarInstrumentos();   // notas no MESMO relógio da barra + timbres reais
+    // no downbeat só liberamos a execução (som é disparado pela própria barra, nota a nota)
+    const iniciarMusica=()=>{ if(!estaAtivo) return; emContagem=false; playing=true; $('play').innerHTML=lbl('▶ Tocar'); };
+    setTimeout(iniciarMusica, Math.max(0,(downbeat-relogio())*1000));
+    // relógio de áudio mestre: cursor, metrônomo e CADA NOTA no mesmo relógio (loop em stepPlayback)
+    raf=requestAnimationFrame(stepPlayback); return;
+  }
+  // sem player (XML sem MIDI): varredura de demonstração
+  const svg=$('vwWrap').querySelector('svg'); if(!svg){ toast('Importe uma partitura primeiro'); return; }
+  const wrap=$('vwWrap'), cur=$('cursor'); estaAtivo=true; playing=true; atualizarBotoes(); cur.style.display='block'; t0=performance.now();
+  const W=svg.getBoundingClientRect().width; const dur=8000;
+  const step=now=>{ if(!playing) return; const f=((now-t0)%dur)/dur; const x=10+f*(W-20); cur.style.left=x+'px'; wrap.scrollLeft=Math.max(0,x-wrap.clientWidth*0.5); raf=requestAnimationFrame(step); };
+  raf=requestAnimationFrame(step);
+}
+function pausar(){ if(!estaAtivo) return; estaAtivo=false; emContagem=false; playing=false; sincronizado=false; posPausa=Math.max(0,posVirtual); pararMetro(); pararVozes(); if(raf) cancelAnimationFrame(raf); atualizarBotoes(); toast('Pausado em '+posPausa.toFixed(1)+'s.'); }
+function parar(){ estaAtivo=false; emContagem=false; playing=false; sincronizado=false; pararMetro(); pararVozes(); posPausa=0; posVirtual=0; if(raf) cancelAnimationFrame(raf);
+  const c=$('cursor'); if(c){ c.style.display='none'; c.style.left='0px'; }
+  const rc=$('rollCursor'); if(rc){ rc.style.display='none'; rc.style.left='0px'; }
+  const sc=$('rollScroll'); if(sc) sc.scrollLeft=0; limparHl(); atualizarBotoes(); }
+$('play').addEventListener('click', ()=>{ if(!estaAtivo && posPausa>0.001) retomar(); else tocar(); });
+$('pause').addEventListener('click', ()=>{ if(estaAtivo) pausar(); else retomar(); });   // 1º clique pausa, 2º retoma
+$('stop').addEventListener('click', parar);
+// Volumes mestre: geral da partitura + metrônomo (independentes dos volumes por instrumento)
+(function(){ const vg=$('volGeral'), vm=$('volMetro');
+  if(vg) vg.addEventListener('input',()=>{ const pc=$('volGeralPct'); if(pc) pc.textContent=vg.value+'%'; setVolGeral((+vg.value)/100); });
+  if(vm) vm.addEventListener('input',()=>{ const pc=$('volMetroPct'); if(pc) pc.textContent=vm.value+'%'; setVolMetro((+vm.value)/100); });
+})();
+
+/* ----- Controles: metrônomo, BPM, tom (transposição), loop A/B ----- */
+$('metro').addEventListener('click',()=>{ metroOn=!metroOn; $('metro').classList.toggle('on',metroOn); if(metroOn) ac(); });
+function rebuildBatidasSeAtivo(){ if(!estaAtivo) return; const bd2=(beatTimesEff.length>1?(beatTimesEff[1]-beatTimesEff[0]):60/effBPM()); montarBatidas(0, bd2, 0); resetMetroPtr(Math.max(0,posMetro)); }
+// remonta as notas do motor de som (mudo/volume/transposição/BPM) sem perder a sincronia com a barra
+function reconstruirSom(){ if(!estaAtivo) return; const p=Math.max(0,posVirtual); pararVozes(); montarNotas(p); resetNotaPtr(p); }
+function setBpm(nv){ nv=Math.max(20,Math.min(320,Math.round(nv))); bpmFactor=nv/bpmBase; $('bpmVal').value=nv;
+  recomputarBeats(); if(modoRoll) desenharRoll(); rebuildBatidasSeAtivo(); reconstruirSom(); }
+$('bpmUp').addEventListener('click',()=>setBpm(effBPM()+1));
+$('bpmDown').addEventListener('click',()=>setBpm(effBPM()-1));
+$('bpmVal').addEventListener('change',()=>setBpm(+$('bpmVal').value||effBPM()));
+function setTranspor(s){ transporSemis=Math.max(-12,Math.min(12,s)); $('trVal').textContent=(transporSemis>0?'+':'')+transporSemis;
+  if(modoRoll) desenharRoll(); reconstruirSom(); }
+$('trUp').addEventListener('click',()=>setTranspor(transporSemis+1));
+$('trDown').addEventListener('click',()=>setTranspor(transporSemis-1));
+$('loopA').addEventListener('click',()=>{ if(!temMidi()){ toast('Importe um arquivo primeiro.'); return; } loopA=Math.max(0,posVirtual)*bpmFactor; $('loopA').classList.add('on'); desenharLoopMarks(); toast('Início (A) marcado em '+(loopA).toFixed(1)+'s.'); });
+$('loopB').addEventListener('click',()=>{ if(!temMidi()){ toast('Importe um arquivo primeiro.'); return; } loopB=Math.max(0,posVirtual)*bpmFactor; $('loopB').classList.add('on'); desenharLoopMarks(); toast('Fim (B) marcado em '+(loopB).toFixed(1)+'s.'); });
+$('loopOn').addEventListener('click',()=>{ if(loopA==null||loopB==null||loopB<=loopA){ toast('Marque A e depois B (B após A).'); return; } loopOn=!loopOn; $('loopOn').classList.toggle('on',loopOn); toast(loopOn?'Loop A–B ligado.':'Loop desligado.'); });
+$('loopClr').addEventListener('click',()=>{ loopA=loopB=null; loopOn=false; ['loopA','loopB','loopOn'].forEach(id=>$(id).classList.remove('on')); desenharLoopMarks(); toast('Loop limpo.'); });
+
+/* ---------- Metrônomo VISUAL (motor idêntico ao do index.html) ---------- */
+(function metronomoVisualPop(){
+  const pop=$('mvPop'); if(!pop) return;
+  const btn=$('btnMetroVisual'), nodesHost=$('mvNodes'), guia=$('mvGuia'), bpmEl=$('mvBpm'), closeBtn=$('mvClose');
+  let nodes=[], numAtual=0, raf2=null, aberto=false;
+  function meterNum(){ return BEATS_BAR; }
+  function bpmAtual(){ return effBPM(); }
+  function faseAtual(){ return 0; }
+  function montarNodes(num){ numAtual=num; nodes=[]; nodesHost.querySelectorAll('.mv-node').forEach(n=>n.remove());
+    for(let i=0;i<num;i++){ const d=document.createElement('div'); d.className='mv-node '+(i===0?'n1':'n'); d.textContent=String(i+1); nodesHost.appendChild(d); nodes.push(d); } }
+  function beatInfo(pos){ const num=meterNum();
+    if(pos>=0 && beatTimesEff.length>4){ let idx=-1; for(let i=0;i<beatTimesEff.length;i++){ if(beatTimesEff[i]<=pos+0.001) idx=i; else break; }
+      if(idx<0) return {num, beatIndex:-1, bib:0, prog:0};
+      const bib=((idx%num)+num)%num; const b0=beatTimesEff[idx], b1=(beatTimesEff[idx+1]!==undefined)?beatTimesEff[idx+1]:b0+0.5; const prog=(b1>b0)?(pos-b0)/(b1-b0):0;
+      return {num, beatIndex:idx, bib, prog:Math.max(0,Math.min(1,prog))}; }
+    const beat=(beatTimesEff.length>1? (beatTimesEff[1]-beatTimesEff[0]) : 60/bpmAtual()), rel=pos-faseAtual();
+    const beatIndex=Math.floor(rel/beat); const bib=((beatIndex%num)+num)%num; const prog=(rel/beat)-beatIndex;
+    return {num, beatIndex, bib, prog:Math.max(0,Math.min(1,prog))}; }
+  function pintar(info, tocando){ const prog=((info.bib)+info.prog)/Math.max(1,info.num-1); guia.style.width=(Math.max(0,Math.min(1,prog))*100).toFixed(1)+'%';   // alinha o preenchimento aos nós 1-2-3-4
+    const flash= tocando && info.prog<0.18 && (info.beatIndex>=0 || emContagem);   // conta também na pré-contagem (beat negativo)
+    nodes.forEach((n,i)=>{ n.classList.remove('on','acc'); if(i===info.bib && flash){ n.classList.add('on'); if(info.bib===0) n.classList.add('acc'); } });
+    if(!tocando){ guia.style.width='0%'; } }
+  function loop(){ if(!aberto){ raf2=null; return; } const num=meterNum(); if(num!==numAtual) montarNodes(num);
+    bpmEl.textContent=Math.round(bpmAtual())+' BPM'; pintar(beatInfo(posReproducao()), ativo()); raf2=requestAnimationFrame(loop); }
+  function abrir(){ aberto=true; pop.classList.add('on'); montarNodes(meterNum()); if(!raf2) raf2=requestAnimationFrame(loop); }
+  function fechar(){ aberto=false; pop.classList.remove('on'); }
+  if(btn) btn.addEventListener('click', ()=> aberto? fechar() : abrir());
+  if(closeBtn) closeBtn.addEventListener('click', fechar);
+  (function drag(){ const h=$('mvHead'); if(!h) return; let sx,sy,ox,oy,arr=false;
+    h.addEventListener('pointerdown', e=>{ if(e.target.id==='mvClose')return; arr=true; sx=e.clientX; sy=e.clientY; const r=pop.getBoundingClientRect(); ox=r.left; oy=r.top; pop.style.right='auto'; pop.style.bottom='auto'; pop.style.left=ox+'px'; pop.style.top=oy+'px'; try{h.setPointerCapture(e.pointerId);}catch(_){} });
+    h.addEventListener('pointermove', e=>{ if(!arr)return; pop.style.left=(ox+e.clientX-sx)+'px'; pop.style.top=(oy+e.clientY-sy)+'px'; });
+    h.addEventListener('pointerup', e=>{ arr=false; try{h.releasePointerCapture(e.pointerId);}catch(_){} }); })();
+})();
+
+/* ---------- EXPORTS funcionais ---------- */
+function baixar(url, nome){ const a=document.createElement('a'); a.href=url; a.download=nome; document.body.appendChild(a); a.click(); a.remove(); }
+// ===== TÍTULO da partitura (lido do XML ou do nome do arquivo), EDITÁVEL; vai p/ impressão e exportação =====
+function extrairTituloXML(xml){ try{ const d=new DOMParser().parseFromString(xml,'application/xml'); if(d.getElementsByTagName('parsererror').length) return '';
+  const g=function(tag){ const e=d.getElementsByTagName(tag)[0]; return e?e.textContent.trim():''; };
+  let t=g('work-title')||g('movement-title');
+  if(!t){ const cws=[].slice.call(d.getElementsByTagName('credit-words')).map(c=>c.textContent.trim()).filter(Boolean); if(cws.length) t=cws[0]; }
+  return t||''; }catch(_){ return ''; } }
+function setTitulo(t){ const el=$('tituloPartitura'); if(el) el.value=(t||'').trim(); }
+function tituloAtual(){ const el=$('tituloPartitura'); const v=el?el.value.trim():''; return v || lastNome || 'partitura'; }
+function escHTML(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function nomeExport(ext){ let n=tituloAtual(); if(!/Orivox Studio 2\.5/i.test(n)) n+=' - Orivox Studio 2.5'; return n.replace(/[\\/:*?"<>|]+/g,' ').trim()+'.'+ext; }
+// nome da parte isolada pelo ♩ (ou null) — usado para exportar só aquele instrumento
+function nomeParteIndividual(){ if(parteIndividual==null || !parsedMidi) return null; const t=parsedMidi.tracks.find(x=>x.idx===parteIndividual); return t?t.name:null; }
+// monta o printArea a partir do que está VISÍVEL (que o ♩ já filtrou) e abre a impressão
+function imprimirPartitura(){ const fonte = modoRoll ? $('vwRoll') : $('vwSVG'); const svg=fonte&&fonte.querySelector('svg');
+  if(!svg){ toast('Importe uma partitura primeiro'); return false; }
+  const _tit=tituloAtual(); const _cab=_tit?('<h2 style="font-family:Georgia,serif;font-size:22px;text-align:center;margin:0 0 14px;color:#111">'+escHTML(_tit)+'</h2>'):'';
+  $('printArea').innerHTML='<div style="padding:20px">'+_cab+fonte.innerHTML+'<div style="margin-top:16px;font:12px \'IBM Plex Mono\',monospace;color:#666;text-align:center;line-height:1.6">Partitura generated with Orivox<br>Desenvolvido por Raphael Silveira</div></div>';
+  setTimeout(()=>{ window.print(); }, 250); return true; }
+$('expXML').addEventListener('click',()=>{
+  if(!lastXML){ toast('Importe um MusicXML para exportar XML.'); return; }
+  let base=lastXML, indiv=false; const nome=nomeParteIndividual();
+  if(nome && !modoRoll){ const f=filtrarXMLParte(lastXML, nome); if(f){ base=f; indiv=true; } }
+  let xml=base; const cred='<!-- Partitura generated with Orivox -->';
+  if(xml.indexOf('generated with Orivox')<0){ xml = /<\?xml[^>]*\?>/.test(xml) ? xml.replace(/(<\?xml[^>]*\?>)/, '$1\n'+cred) : cred+'\n'+xml; }
+  // grava o título editado no XML (se já houver work-title/movement-title)
+  const tit=escHTML(tituloAtual());
+  if(tit){ if(/<work-title>[\s\S]*?<\/work-title>/.test(xml)) xml=xml.replace(/<work-title>[\s\S]*?<\/work-title>/, '<work-title>'+tit+'</work-title>');
+    else if(/<movement-title>[\s\S]*?<\/movement-title>/.test(xml)) xml=xml.replace(/<movement-title>[\s\S]*?<\/movement-title>/, '<movement-title>'+tit+'</movement-title>'); }
+  const u=URL.createObjectURL(new Blob([xml],{type:'application/vnd.recordare.musicxml+xml'}));
+  baixar(u, nomeExport('musicxml')); setTimeout(()=>URL.revokeObjectURL(u),3000); toast(indiv?'Exportando MusicXML (só o instrumento selecionado)…':'Exportando MusicXML…');
+});
+$('expMIDI').addEventListener('click',()=>{
+  let u8=null; const nome=nomeParteIndividual();
+  if(parsedMidi && baseMidiU8){
+    if(nome){ const mix={}; parsedMidi.tracks.forEach(t=>{ mix[t.idx]={mute:(t.name!==nome), vol:1}; }); u8=OrivoxMidi.build(parsedMidi, {mix:mix, semis:transporSemis, bpmFactor:bpmFactor}); }
+    else u8=midiAtualU8();
+  } else if(lastMIDIexport) u8=u8FromB64(lastMIDIexport.split(',')[1]);
+  if(!u8){ toast('Importe um MusicXML ou MIDI para exportar MIDI.'); return; }
+  const url=URL.createObjectURL(new Blob([u8],{type:'audio/midi'}));
+  baixar(url, nomeExport('mid')); setTimeout(()=>URL.revokeObjectURL(url),3000); toast(nome?'Exportando MIDI (só o instrumento selecionado)…':'Exportando MIDI…');
+});
+$('expPDF').addEventListener('click',()=>{
+  if(lastPDFBlob){ const u=URL.createObjectURL(lastPDFBlob); baixar(u, nomeExport('pdf')); setTimeout(()=>URL.revokeObjectURL(u),3000); toast('Exportando o PDF importado…'); return; }
+  if(imprimirPartitura()) toast('Abrindo a impressão — escolha "Salvar como PDF".');   // imprime o que está visível (respeita o ♩)
+});
+$('imprimir').addEventListener('click',()=>{ if(imprimirPartitura()) toast('Abrindo a impressão da partitura…'); });
+/* ===== IDIOMA: bandeiras 🇧🇷 🇺🇸 🇪🇸 — traduz a página inteira e lembra a escolha ===== */
+var I18N_LANG='pt';
+var TRAD={ en:{}, es:{} };
+(function(){
+ var EN=TRAD.en, ES=TRAD.es;
+ function P(pt,en,es){ EN[pt]=en; ES[pt]=es; }
+ P('← Voltar ao estúdio','← Back to studio','← Volver al estudio');
+ P('Áudio → caderno (Colab) → partitura, tudo numa página. Importe o arquivo gerado e acompanhe a partitura seguindo o som, sem sair daqui.','Audio → notebook (Colab) → score, all on one page. Import the generated file and follow the score along with the sound, without leaving here.','Audio → cuaderno (Colab) → partitura, todo en una página. Importa el archivo generado y sigue la partitura con el sonido, sin salir de aquí.');
+ P('Enviar áudio','Upload audio','Enviar audio');
+ P('Importar e ver a partitura','Import and view the score','Importar y ver la partitura');
+ P('Transforme seu áudio em partitura','Turn your audio into a score','Convierte tu audio en partitura');
+ P('Grátis e no seu navegador.','Free and in your browser.','Gratis y en tu navegador.');
+ P('Selecione seu áudio','Select your audio','Selecciona tu audio');
+ P('para começar: o caderno abre no Colab (nova aba) e gera a partitura; esta página já avança para a importação (Passo 2).','to start: the notebook opens in Colab (new tab) and generates the score; this page moves on to the import step (Step 2).','para empezar: el cuaderno se abre en Colab (nueva pestaña) y genera la partitura; esta página ya avanza a la importación (Paso 2).');
+ P('🎵 Selecionar arquivos de áudio','🎵 Select audio files','🎵 Seleccionar archivos de audio');
+ P('⬇ Baixar o caderno (.ipynb)','⬇ Download the notebook (.ipynb)','⬇ Descargar el cuaderno (.ipynb)');
+ P('Já tem o XML/MIDI/PDF gerado?','Already have the XML/MIDI/PDF?','¿Ya tienes el XML/MIDI/PDF?');
+ P('Pular para a importação →','Skip to import →','Saltar a la importación →');
+ P('Importe o arquivo gerado pelo caderno','Import the file generated by the notebook','Importa el archivo generado por el cuaderno');
+ P('No Colab, rode a','In Colab, run','En Colab, ejecuta la');
+ P('Célula 8 — "Partitura COMPLETA"','Cell 8 — "FULL SCORE"','Celda 8 — "Partitura COMPLETA"');
+ P('(marque','(check','(marca');
+ P('e envie seu áudio). Baixe o','and upload your audio). Download the','y envía tu audio). Descarga el');
+ P('(ou MIDI/PDF) que ela gera e importe aqui.','(or MIDI/PDF) it generates and import it here.','(o MIDI/PDF) que genera e impórtalo aquí.');
+ P('↗ abrir o caderno no Colab','↗ open the notebook in Colab','↗ abrir el cuaderno en Colab');
+ P('Importar MusicXML, MIDI ou PDF','Import MusicXML, MIDI or PDF','Importar MusicXML, MIDI o PDF');
+ P('— clique ou arraste o arquivo aqui','— click or drag the file here','— haz clic o arrastra el archivo aquí');
+ P('▶ Tocar','▶ Play','▶ Reproducir');
+ P('● contando…','● counting…','● contando…');
+ P('Exportar:','Export:','Exportar:');
+ P('Trocar arquivo','Change file','Cambiar archivo');
+ P('🔔 Metrônomo','🔔 Metronome','🔔 Metrónomo');
+ P('sem contagem','no count-in','sin conteo');
+ P('contar 1 compasso','count 1 bar','contar 1 compás');
+ P('contar 2 compassos','count 2 bars','contar 2 compases');
+ P('Tom','Key','Tono');
+ P('🎚 Instrumentos — mude, dê solo ou ajuste o volume de cada um','🎚 Instruments — mute, solo or adjust each one’s volume','🎚 Instrumentos — silencia, pon solo o ajusta el volumen de cada uno');
+ P('Partitura (geral)','Score (master)','Partitura (general)');
+ P('Importe um arquivo para ver a partitura.','Import a file to see the score.','Importa un archivo para ver la partitura.');
+ P('Som (MIDI) — toque para ouvir e acompanhar a partitura:','Sound (MIDI) — play to hear and follow the score:','Sonido (MIDI) — reproduce para oír y seguir la partitura:');
+ P('O passo no caderno é manual: você envia o áudio no Colab (aba nova) e importa aqui o arquivo gerado. Assim tudo continua grátis e no seu navegador.','The notebook step is manual: you upload the audio in Colab (new tab) and import the generated file here. This way everything stays free and in your browser.','El paso del cuaderno es manual: envías el audio en Colab (pestaña nueva) e importas aquí el archivo generado. Así todo sigue gratis y en tu navegador.');
+ P('← voltar ao envio de áudio','← back to audio upload','← volver al envío de audio');
+ P('Metrônomo visual','Visual metronome','Metrónomo visual');
+ P('Pisca no tempo. Acompanha o play e o BPM. Fica flutuando: a página continua inteira.','Blinks on the beat. Follows play and BPM. Stays floating: the page remains intact.','Parpadea en el tiempo. Sigue el play y el BPM. Queda flotando: la página sigue entera.');
+ P('Orivox · Partitura · 100% no seu navegador','Orivox · Score · 100% in your browser','Orivox · Partitura · 100% en tu navegador');
+ P('Tocar / retomar','Play / resume','Reproducir / reanudar');
+ P('Pausar (mantém a posição)','Pause (keeps position)','Pausar (mantiene la posición)');
+ P('Parar (volta ao início)','Stop (back to start)','Detener (vuelve al inicio)');
+ P('Toca um click/metrônomo junto com a música','Plays a click/metronome along with the music','Reproduce un clic/metrónomo junto con la música');
+ P('Metrônomo visual: pulso que pisca no tempo (acessibilidade auditiva). Painel flutuante.','Visual metronome: a pulse that blinks on the beat (hearing accessibility). Floating panel.','Metrónomo visual: un pulso que parpadea en el tiempo (accesibilidad auditiva). Panel flotante.');
+ P('Compassos de contagem antes de começar a tocar','Count-in bars before playback starts','Compases de conteo antes de empezar a reproducir');
+ P('Diminuir BPM','Decrease BPM','Disminuir BPM'); P('Aumentar BPM','Increase BPM','Aumentar BPM');
+ P('Transpor para baixo','Transpose down','Transportar hacia abajo'); P('Transpor para cima','Transpose up','Transportar hacia arriba');
+ P('Marcar início do trecho','Mark start of section','Marcar inicio del fragmento'); P('Marcar fim do trecho','Mark end of section','Marcar fin del fragmento');
+ P('Repetir o trecho A–B','Repeat the A–B section','Repetir el fragmento A–B'); P('Limpar A/B','Clear A/B','Limpiar A/B');
+ P('Volume geral da partitura','Master score volume','Volumen general de la partitura'); P('Volume do metrônomo','Metronome volume','Volumen del metrónomo');
+ P('PDF da partitura','Score PDF','PDF de la partitura'); P('Fechar','Close','Cerrar');
+ P('🖨 Imprimir','🖨 Print','🖨 Imprimir'); P('Imprimir a partitura direto do navegador','Print the score directly from the browser','Imprimir la partitura directamente desde el navegador');
+ P('Título da partitura (clique para editar)','Score title (click to edit)','Título de la partitura (clic para editar)');
+ P('Título da partitura — clique para editar; aparece na impressão e na exportação','Score title — click to edit; it appears in print and export','Título de la partitura — clic para editar; aparece en la impresión y la exportación');
+ // rótulos/tooltips dinâmicos (mixer)
+ P('mudo','mute','silencio'); P('solo','solo','solo');
+ P('Corrigir o instrumento desta faixa','Fix this track’s instrument','Corregir el instrumento de esta pista');
+ P('Ver só a pauta deste instrumento (apenas visual)','Show only this instrument’s staff (visual only)','Ver solo el pentagrama de este instrumento (solo visual)');
+ P('Tocar só esta(s) pista(s)','Play only this track(s)','Reproducir solo esta(s) pista(s)');
+ P('Destacar este instrumento na partitura (sua cor) — só conferência','Highlight this instrument in the score (its color) — just for reference','Resaltar este instrumento en la partitura (su color) — solo para comprobar');
+ // dica (legenda curta) do mixer
+ P('ver só a pauta deste instrumento na partitura (apenas visual)','show only this instrument’s staff in the score (visual only)','ver solo el pentagrama de este instrumento en la partitura (solo visual)');
+ P('clique na cor para destacar esse instrumento na partitura (só conferência)','click the color to highlight that instrument in the score (just for reference)','haz clic en el color para resaltar ese instrumento en la partitura (solo para comprobar)');
+ P('afetam apenas o áudio','affect the audio only','afectan solo al audio');
+ P('Bateria/Percussão','Drums/Percussion','Batería/Percusión');
+ // toasts estáticos comuns
+ P('Partitura completa.','Full score.','Partitura completa.');
+ P('Pausado','Paused','Pausado'); P('Importe uma partitura primeiro','Import a score first','Importa una partitura primero');
+})();
+function lbl(pt){ try{ if(I18N_LANG && I18N_LANG!=='pt' && TRAD[I18N_LANG] && TRAD[I18N_LANG][pt]!=null) return TRAD[I18N_LANG][pt]; }catch(_){} return pt; }
+var _ORIGtxt=new WeakMap();
+function setLang(lang){ I18N_LANG=lang; try{ localStorage.setItem('orivox_lang',lang); }catch(_){}
+  var dict = (lang==='pt')? null : (TRAD[lang]||{});
+  var w=document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, { acceptNode:function(n){ var p=n.parentNode; var pn=p&&p.nodeName; if(pn==='SCRIPT'||pn==='STYLE') return NodeFilter.FILTER_REJECT; if(p&&p.closest&&p.closest('#mixDica')) return NodeFilter.FILTER_REJECT; return NodeFilter.FILTER_ACCEPT; }});
+  var n; while(n=w.nextNode()){ if(!_ORIGtxt.has(n)) _ORIGtxt.set(n, n.textContent); var pt=_ORIGtxt.get(n); var key=pt.replace(/\s+/g,' ').trim(); if(!key) continue;
+    if(dict){ var tr=dict[key]; if(tr!=null) n.textContent=pt.replace(key,tr); } else n.textContent=pt; }
+  var attrs=['title','placeholder','aria-label'];
+  document.querySelectorAll('[title],[placeholder],[aria-label]').forEach(function(e){ attrs.forEach(function(a){ if(!e.hasAttribute(a)) return; var da='data-pt-'+a; if(!e.hasAttribute(da)) e.setAttribute(da, e.getAttribute(a)); var pt=e.getAttribute(da); var key=pt.trim();
+    if(dict){ var tr=dict[key]; if(tr!=null) e.setAttribute(a,tr); else e.setAttribute(a,pt); } else e.setAttribute(a,pt); }); });
+  document.querySelectorAll('.langbar .flag').forEach(function(f){ f.classList.toggle('on', f.getAttribute('data-lang')===lang); });
+  document.documentElement.setAttribute('lang', lang==='pt'?'pt-BR':(lang==='es'?'es':'en'));
+  montarDica();   // (re)monta a legenda do mixer já no idioma atual (fora do TreeWalker)
+}
+// legenda curta (dica) do mixer, montada via lbl() para traduzir sem quebrar com os ícones inline
+function montarDica(){ var el=document.getElementById('mixDica'); if(!el) return;
+  el.innerHTML='<span class="ic">♩</span> '+lbl('ver só a pauta deste instrumento na partitura (apenas visual)')
+    +' <span class="sep">·</span> <span class="sq"></span> '+lbl('clique na cor para destacar esse instrumento na partitura (só conferência)')
+    +' <span class="sep">·</span> <b>'+lbl('solo')+'</b> / <b>'+lbl('mudo')+'</b> '+lbl('afetam apenas o áudio'); }
+function aplicarIdioma(){ setLang(I18N_LANG); }
+(function(){ var bar=document.createElement('div'); bar.className='langbar';
+  var SVGF={
+    pt:'<svg viewBox="0 0 28 20" xmlns="http://www.w3.org/2000/svg"><rect width="28" height="20" fill="#009b3a"/><polygon points="14,2.2 25.3,10 14,17.8 2.7,10" fill="#ffdf00"/><circle cx="14" cy="10" r="4.1" fill="#002776"/><path d="M10.2 9.2a4.1 4.1 0 0 1 7.8 1.9" fill="none" stroke="#fff" stroke-width="0.9"/></svg>',
+    en:'<svg viewBox="0 0 28 20" xmlns="http://www.w3.org/2000/svg"><rect width="28" height="20" fill="#fff"/><g fill="#b22234"><rect width="28" height="2"/><rect y="4" width="28" height="2"/><rect y="8" width="28" height="2"/><rect y="12" width="28" height="2"/><rect y="16" width="28" height="2"/></g><rect width="12" height="10" fill="#3c3b6e"/><g fill="#fff"><circle cx="2.5" cy="2" r="0.7"/><circle cx="6" cy="2" r="0.7"/><circle cx="9.5" cy="2" r="0.7"/><circle cx="4.2" cy="4" r="0.7"/><circle cx="7.7" cy="4" r="0.7"/><circle cx="2.5" cy="6" r="0.7"/><circle cx="6" cy="6" r="0.7"/><circle cx="9.5" cy="6" r="0.7"/><circle cx="4.2" cy="8" r="0.7"/><circle cx="7.7" cy="8" r="0.7"/></g></svg>',
+    es:'<svg viewBox="0 0 28 20" xmlns="http://www.w3.org/2000/svg"><rect width="28" height="20" fill="#c60b1e"/><rect y="5" width="28" height="10" fill="#ffc400"/><rect x="5" y="8.4" width="2.6" height="3.4" fill="#c60b1e" rx="0.3"/></svg>'
+  };
+  [['pt','Português'],['en','English'],['es','Español']].forEach(function(f){ var btn=document.createElement('button'); btn.className='flag'; btn.type='button'; btn.innerHTML=SVGF[f[0]]||''; btn.title=f[1]; btn.setAttribute('data-lang',f[0]); btn.setAttribute('aria-label',f[1]); btn.addEventListener('click',function(){ setLang(f[0]); }); bar.appendChild(btn); });
+  document.body.appendChild(bar);
+  var saved='pt'; try{ saved=localStorage.getItem('orivox_lang')||'pt'; }catch(_){}
+  setLang(saved);
+})();
+</script></body></html>
